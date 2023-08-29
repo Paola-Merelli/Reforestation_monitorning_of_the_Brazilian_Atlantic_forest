@@ -1,33 +1,21 @@
 # Calculating biomass from circumferences and heights measures for each plot
+# importing the plot sheet
+EU1b <-read.csv("EU1b.csv")
 
-# calculating the radius from the circumference
-circ <-EU1$DBHcf
-raggio <- function(x){
-  divided <- x/(2*pi)
+circ <-EU1b$DBHcf
+diam <- function(x){
+  divided <- x/(pi)
   return(divided)
 }
-raggio(circ)
-EU1r <- raggio(circ)
-EU1r
-radius <- round(EU1r, digits = 1)
-EU1 <- cbind(EU1, radius)
-EU1
-write.csv(EU1, "EU1b.csv")
 
-#calculating the diameter from the radius
-EU1b <-read.csv("EU1b.csv")
-EU1b
-Diam <- EU1b[,7]*2
-Diam
+EU1r <- diam(circ)
+EU1r
+Diam <- round(EU1r, digits = 1)
 EU1b <- cbind(EU1b, Diam)
 EU1b
-write.csv(EU1b, "EU1b.csv")
-
-
 
 ### biomass calculation with chave eq
 ## AGB = exp(-2.977 + ln(ρ * D2 * H))
-EU1b <- read.csv("EU1b.csv")
 
 chave <- (EU1b[,9]*(EU1b[,8]^2)*EU1b[,6])
 chave
@@ -38,6 +26,7 @@ chavefx <- function(x){
   biom <- exp(-2.977 + log(chave))
               return(biom)
 }
+
 biomass_g <- chavefx(chave)
 biomass_g <- round(biomass_g, digits = 3)
 biomass_kg <- biomass_g / 1000
@@ -48,7 +37,7 @@ EU1b <- cbind(EU1b, biomass_kg)
 
 write.csv(EU1b, "EU1b.csv")
 
-# same code for each plot, by changing just the name of the plot
+# same code for each plot, by changing just the name of the plot (EU2, EU3, RE1 etc)
 
 
 ################### ABC curves #######################
@@ -206,25 +195,56 @@ lines(log(r), abbOG, type = "l", col = "red")
 
 
 
-
 #################################### CORRELATIONS ######################################à
-########################## correlating tree diversity and forest management categories
 library(vegan)
 library(ggplot2)
-FM <- c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG")
+
+# calculating tree diversity
 si <- diversity(CM_TD[,-1], index = "simpson")
 sh <- diversity(CM_TD[,-1], index = "shannon")
 
-#tree diversity of each plot
-#creating the data frame
-TD_FM_abs <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"),
-  shannon = sh,
-  simpson = si)
-TD_FM_abs$plot <- factor(TD_FM_abs$plot, ordered = T, levels = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"))
+#calculating total plot biomass
+totbio <- rowSums(CM_TB[,-1], na.rm = T)
 
-# barplot showing the tree diversity value for each forest plot. used both simpson and shannon
-TD_FM_barsh <- ggplot(TD_FM_abs, aes(x=plot, y=shannon, fill=plot, color=plot)) + 
+#calculating mammal sr
+CM_MS <- read.csv("CM_MS.csv")
+CM_MS[is.na(CM_MS)] <- 0
+CM_MS <- CM_MS[-(16:28),]
+sr <- rowSums(CM_MS[,-1])
+
+# Mammal sr with chao2
+CM_MS <- cbind(CM_MS, sr)
+F1 <- 6
+F2 <- 3
+chaof <- (F1^2)/(2*F2)
+chaof
+
+chao2fx <- function(x){
+  rich <- x + chaof
+  return(rich)
+}
+chao2 <- chao2fx(sr)
+CM_MS <- cbind(CM_MS, chao2)
+
+# creating the dataframe with all the variables
+env <- data.frame(
+  FP = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"),
+  FM = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG"),
+  simpson = si,
+  shannon = sh,
+  altitude = c(999, 919, 887, 947, 794, 715, 824, 748, 818, 999, 757, 1189, 1248, 1268, 1314),
+  biomass = totbio,
+  richness = sr,
+  chao2richness = chao2)
+env$FM <- factor(env$FM, ordered = T, levels = c("EU", "RE", "SE", "SL", "OG"))
+env$FP <- factor(TD_FM_abs$plot, ordered = T, levels = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"))
+str(env)
+
+
+
+########################## correlating tree diversity and forest management categories
+
+TD_FM_barsh <- ggplot(env, aes(x=FP, y=shannon, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Shannon Diversity index") +
   ggtitle("Shannon diversity index per Forest plot") + 
@@ -232,7 +252,7 @@ TD_FM_barsh <- ggplot(TD_FM_abs, aes(x=plot, y=shannon, fill=plot, color=plot)) 
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
 TD_FM_barsh
 
-TD_FM_barsi <- ggplot(TD_FM_abs, aes(x=plot, y=simpson, fill=plot, color = plot)) + 
+TD_FM_barsi <- ggplot(env, aes(x=FP, y=simpson, fill=FP, color = FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Simpson Diversity index") +
   ggtitle("Simpson diversity index per Forest plot") + 
@@ -240,77 +260,40 @@ TD_FM_barsi <- ggplot(TD_FM_abs, aes(x=plot, y=simpson, fill=plot, color = plot)
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
 TD_FM_barsi
 
-
-#mean tree diversity of each forest management type
-#creating the data frame
-TD_FM_mean <- data.frame(
-  plot = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG"),
-  simpson = si,
-  shannon = sh)
-TD_FM_mean$plot <- factor(TD_FM_mean$plot, ordered = T, levels = c("EU", "RE", "SE", "SL", "OG"))
-str(TD_FM_mean)
-
-# creating the boxplot to show the mean TD for each plot category. used both simpson and shannon
 TD_FM_boxsh <- ggplot() + 
-  geom_boxplot(TD_FM_mean, mapping = aes(plot, shannon, color = plot)) + labs(x = "Forest Management type", y = "Shannon Diversity index") +
+  geom_boxplot(env, mapping = aes(FM, shannon, color = FM)) + labs(x = "Forest Management type", y = "Shannon Diversity index") +
   ggtitle("Mean Shannon diversity per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
 TD_FM_boxsh
 
 TD_FM_boxsi <- ggplot() + 
-  geom_boxplot(TD_FM_mean, mapping = aes(plot, simpson, color = plot)) + labs(x = "Forest Management type", y = "Simpson Diversity index") +
+  geom_boxplot(env, mapping = aes(FM, simpson, color = FM)) + labs(x = "Forest Management type", y = "Simpson Diversity index") +
   ggtitle("Mean Simpson diversity per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
 TD_FM_boxsi
 
 
+######################### correlating altitude and tree diversity
 
-################################# correlating tree diversity and altitude of each plot
-TD_AL <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"), 
-  altitude = c(999, 919, 887, 947, 794, 715, 824, 748, 818, 999, 757, 1189, 1248, 1268, 1314),
-  shannon = sh,
-  simpson = si)
-
-##### scatterplot. 
-# Simpson diversity index vs altitude
-TD_AL_scarsi <- ggplot(TD_AL, mapping = aes(x=altitude, y=simpson))+
-  geom_point() + 
+TD_AL_scarsi <- ggplot(env, mapping = aes(x=altitude, y=simpson))+
+  geom_point( mapping = aes(x=altitude, y=simpson, color = FM)) + 
   ggtitle("Simpson Diversity index vs Altitdude")+
   labs(y="Simpson Diversity index", x="Altitude")
 TD_AL_scarsi
+cor.test(env$altitude, env$simpson)
+#cor 
+#-0.1432748 
 
-#correlation test
-cor.test(TD_AL$altitude, TD_AL$simpson)
-#  p value is 0.6105, so being the significance threshold 0.05, the correlation between simpson diversity and altitude is NOT significant 
-# -> do not reject H0 (correlation is equal to 0)
-# cor = -0.14
-
-# Shannon diversity index and altitude
-TD_AL_scarsh <- ggplot(TD_AL, mapping = aes(x=altitude, y=shannon))+
-  geom_point() + 
+TD_AL_scarsh <- ggplot(env, mapping = aes(x=altitude, y=shannon))+
+  geom_point(mapping = aes(x=altitude, y=shannon, color = FM)) + 
   ggtitle("Shannon Diversity index vs Altitdude")+
   labs(y="Shannon Diversity index", x="Altitude")
 TD_AL_scarsh
-
-cor.test(TD_AL$altitude, TD_AL$shannon)
-# p.value is 0.6107, the correlation is NOT significant
-# cor = -0.14
-
+cor.test(env$altitude, env$shannon)
+#cor 
+#-0.1431953 
 
 
-########################################## correlating tree biomass and forest managment type
-CM_TB #tree species biomass community matrix 
-# calculating total biomass for each plot
-totbio <- rowSums(CM_TB[,-1], na.rm = T)
-totbio
-
-#total tree biomass for each plot
-TB_FM_abs <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"),
-  biomass = totbio)
-TB_FM_abs$plot <- factor(TB_FM_abs$plot, ordered = T, levels = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"))
-
-## barplot showing the total tree biomass for each forest plot.
-TB_FM_bar <- ggplot(TB_FM_abs, aes(x=plot, y=biomass, fill=plot, color=plot)) + 
+# TB_FM
+TB_FM_bar <- ggplot(env, aes(x=FP, y=biomass, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") +
   labs(x = "Forest plot", y="Total plot biomass")+
   ggtitle("Total plot biomass per forest plot")+
@@ -318,97 +301,24 @@ TB_FM_bar <- ggplot(TB_FM_abs, aes(x=plot, y=biomass, fill=plot, color=plot)) +
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
 TB_FM_bar
 
-
-#mean total tree biomass of each forest management type
-#creating the data frame
-TB_FM_mean <- data.frame(
-  plot = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG"),
-  biomass = totbio
-)
-TB_FM_mean$plot <- factor(TB_FM_mean$plot, ordered = T, levels = c("EU", "RE", "SE", "SL", "OG"))
-str(TB_FM_mean)
-
-# creating the boxplot to show the mean total TB for each plot category.
 TB_FM_box <- ggplot() + 
-  geom_boxplot(TB_FM_mean, mapping = aes(plot, biomass, color = plot)) + labs(x = "Forest Management type", y = "Total plot biomass") +
+  geom_boxplot(env, mapping = aes(FM, biomass, color = FM)) + labs(x = "Forest Management type", y = "Total plot biomass") +
   ggtitle("Mean total plot biomass per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
 TB_FM_box
 
-
-
-######################################## correlating total tree biomass and altitude of each plot
-#creating the data frame
-TB_AL <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"), 
-  altitude = c(999, 919, 887, 947, 794, 715, 824, 748, 818, 999, 757, 1189, 1248, 1268, 1314),
-  biomass = totbio)
-
-#scatterplot
-TB_AL_scar <- ggplot(TB_AL, mapping = aes(x=altitude, y=biomass))+
-  geom_point() + 
+# altitude - tree biomass
+TB_AL_scar <- ggplot(env, mapping = aes(x=altitude, y=biomass))+
+  geom_point(mapping = aes(x=altitude, y=biomass, color = FM)) + 
   ggtitle("Total plot biomass vs Altitdude")+
-  labs(y="Total plot biomass", x="Altitude")
-TB_AL_scar
+  labs(y="Total plot biomass", x="Altitude") 
+TB_AL_scar + stat_smooth(method = "lm", geom = "smooth", col = "red")
 
-##correlation test
-cor.test(TB_AL$altitude, TD_AL$biomass)
-# p-value = 7.257e-05, significance treshold 0,05 -> the correlation is significant
-# cor = 0.845 -> 84,5% of y variance is explained by x variance
-
-## since it is present a significant correlation, let's run a regression model, thorough the function "lm"
-lm(TB_AL$altitude ~ TB_AL$biomass)
-# Coefficients:
-  (Intercept)  TB_AL$biomass  
-        587.0           24.5 
-abline(587.0, 24.5, col = "red") ## "abline" is used to plot the regression line
-
-
-abline(15.2741, 0.2314, col = "red") ## "abline" is used to plot the regression line
-summary(lm(aravo_env2$sr ~ aravo_env2$Slope ))
-## in the equation y = B0 + B1X, the intercept is considered as "B0", and slope as "B1)
-
-
-plot(TB_AL$altitude, TB_AL$biomass)
-abline(lm(altitude ~ biomass, data = TB_AL),  col="red")
-cor.test(TB_AL$altitude, TB_AL$biomass)
-model <- lm(altitude ~ biomass, data = TB_AL)
-model
-summary(model)
-str(model,1)
-abline(model$coefficients[1], model$coefficients[2])
-plot(p, ylim = c(0, 600), xlim = (1500))
-
-
+cor.test(env$altitude, env$biomass)
+#cor 
+#0.8452422 
 
 # mammal richness correlation
-CM_MS <- read.csv("CM_MS.csv")
-CM_MS[is.na(CM_MS)] <- 0
-CM_MS
-CM_MS <- CM_MS[-(16:28),]
-CM_MS
-sr <- rowSums(CM_MS[,-1])
-sr
-
-MS_FM_mean <- data.frame(
-  plot = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG"),
-  richness = sr)
-
-MS_FM_mean$plot <- factor(MS_FM_mean$plot, ordered = T, levels = c("EU", "RE", "SE", "SL", "OG"))
-str(TD_FM_mean)
-
-MS_FM_box <- ggplot() + 
-  geom_boxplot(MS_FM_mean, mapping = aes(plot, richness, color = plot)) + labs(x = "Forest Management type", y = "Mammal species richness") +
-  ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-MS_FM_box
-
-
-MS_FM_abs <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"),
-  richness = sr)
-MS_FM_abs$plot <- factor(MS_FM_abs$plot, ordered = T, levels = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"))
-
-
-MS_FM_bar <- ggplot(MS_FM_abs, aes(x=plot, y=richness, fill=plot, color=plot)) + 
+MS_FM_bar <- ggplot(env, aes(x=FP, y=richness, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Mammal species richness") +
   ggtitle("Mammal species richness per Forest plot") + 
@@ -416,55 +326,102 @@ MS_FM_bar <- ggplot(MS_FM_abs, aes(x=plot, y=richness, fill=plot, color=plot)) +
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
 MS_FM_bar
 
+MS_FM_box <- ggplot() + 
+  geom_boxplot(env, mapping = aes(FM, richness, color = FM)) + labs(x = "Forest Management type", y = "Mammal species richness") +
+  ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
+MS_FM_box
 
 
-MS_AL <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"), 
-  altitude = c(999, 919, 887, 947, 794, 715, 824, 748, 818, 999, 757, 1189, 1248, 1268, 1314),
-  richness = sr
-)
-
-
-MS_AL_sca <- ggplot(MS_AL, mapping = aes(x=altitude, y=richness))+
+MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Altitdude")+
   labs(y="Mammal species richness", x="Altitude")
-MS_AL_sca
+MS_AL_sca 
 
-cor.test(MS_AL$altitude, MS_AL$richness)
-
-MS_TD <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"), 
-  simpson = si,
-  shannon = sh,
-  richness = sr)
-
-MS_TDsi_sca <- ggplot(MS_TD, mapping = aes(x=simpson, y=richness))+
-  geom_point() + 
-  ggtitle("Mammal species richness vs Simpson diversity index")+
-  labs(y="Mammal species richness", x="Simpson diversity index")
-MS_TDsi_sca
-
-cor.test(MS_TD$simpson, MS_TD$richness)
-model <- lm(simpson ~ richness, data = MS_TD)
-plot(MS_TD$simpson, MS_TD$richness)
-abline(model$coefficients[1], model$coefficients[2], col="red")
+cor.test(env$altitude, envrichness)
+#cor 
+#-0.05955166 
 
 
-MS_TDsh_sca <- ggplot(MS_TD, mapping = aes(x=shannon, y=richness))+
-  geom_point() + 
-  ggtitle("Mammal species richness vs Shannon diversity index")+
-  labs(y="Mammal species richness", x="Shannon diversity index")
-MS_TDsh_sca
-
-MS_TB <- data.frame(
-  plot = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"), 
-  biomass = totbio,
-  richness = sr)
-
-MS_TB_sca <- ggplot(MS_TB, mapping = aes(x= biomass, y=richness))+
+MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Total plot biomass")+
   labs(y="Mammal species richness", x="Total plot biomass")
 MS_TB_sca
 
+
+MS_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=richness))+
+  geom_point(mapping = aes(x=simpson, y=richness, color = FM)) + 
+  ggtitle("Mammal species richness vs Simpson diversity index")+
+  labs(y="Mammal species richness", x="Simpson diversity index")
+MS_TDsi_sca + geom_smooth(method = "lm")
+
+cor.test(env$simpson, env$richness)
+#     cor 
+#0.6170594
+
+
+MS_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=richness))+
+  geom_point(mapping = aes(x=shannon, y=richness, color = FM)) + 
+  ggtitle("Mammal species richness vs Shannon diversity index")+
+  labs(y="Mammal species richness", x="Shannon diversity index")
+MS_TDsh_sca + geom_smooth(method = "lm")
+
+cor.test(env$shannon, env$richness)
+#     cor 
+#0.5826966 
+
+
+## mammal sr con chao
+MS_FM_bar <- ggplot(env, aes(x=FP, y=chao2richness, fill=FP, color=FP)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "Forest plot", y = "Mammal species richness") +
+  ggtitle("Mammal species richness per Forest plot") + 
+  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"))+
+  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
+MS_FM_bar
+
+MS_FM_box <- ggplot() + 
+  geom_boxplot(env, mapping = aes(FM, chao2richness, color = FM)) + labs(x = "Forest Management type", y = "Mammal species richness") +
+  ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
+MS_FM_box
+
+
+MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=chao2richness))+
+  geom_point() + 
+  ggtitle("Mammal species richness vs Altitdude")+
+  labs(y="Mammal species richness", x="Altitude")
+MS_AL_sca 
+
+cor.test(env$altitude, env$chao2richness)
+#cor 
+#-0.05955166 
+
+
+MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=chao2richness))+
+  geom_point() + 
+  ggtitle("Mammal species richness vs Total plot biomass")+
+  labs(y="Mammal species richness", x="Total plot biomass")
+MS_TB_sca
+
+
+MS_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=chao2richness))+
+  geom_point(mapping = aes(x=simpson, y=chao2richness, color = FM)) + 
+  ggtitle("Mammal species richness vs Simpson diversity index")+
+  labs(y="Mammal species richness", x="Simpson diversity index")
+MS_TDsi_sca + geom_smooth(method = "lm")
+
+cor.test(env$simpson, env$chao2richness)
+#     cor 
+#0.6170594
+
+
+MS_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=chao2richness))+
+  geom_point(mapping = aes(x=shannon, y=chao2richness, color = FM)) + 
+  ggtitle("Mammal species richness vs Shannon diversity index")+
+  labs(y="Mammal species richness", x="Shannon diversity index")
+MS_TDsh_sca + geom_smooth(method = "lm")
+
+cor.test(env$shannon, env$chao2richness)
+#     cor 
+#0.5826966 
