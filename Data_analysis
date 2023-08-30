@@ -192,7 +192,44 @@ lines(log(r), abbSL, type = "l", col = "red")
 plot(log(r), bioOG, type = "l", col = "blue", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Old grown")
 lines(log(r), abbOG, type = "l", col = "red")
 
+#####  plotting with ggplot
+library(ggplot2)
+library(gridExtra)
+dat <- data.frame(bioEU, abbEU, bioRE, abbRE, bioSE, abbSE, bioSL, abbSL, bioOG, abbOG, r)
 
+abc_EU <- ggplot(dat) + 
+  geom_line(aes(y = abbEU, x = log(r)), color = "red") + 
+  geom_line(aes(y = bioEU, x = log(r)), color= "darkblue")+
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Eucalyptus")
+
+abc_RE <- ggplot(dat) + 
+  geom_line(aes(y = abbRE, x = log(r)), color = "red") + 
+  geom_line(aes(y = bioRE, x = log(r)), color="darkblue")+
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Reforested")
+
+abc_SE <- ggplot(dat) + 
+  geom_line(aes(y = abbSE, x = log(r)), color = "red") + 
+  geom_line(aes(y = bioSE, x = log(r)), color="darkblue") +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Secondary")
+
+abc_SL <- ggplot(dat) + 
+  geom_line(aes(y = abbSL, x = log(r)), color = "red") + 
+  geom_line(aes(y = bioSL, x = log(r)), color="darkblue") +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Selective Logging")
+
+abc_OG <- ggplot(dat) + 
+  geom_line(aes(y = abbOG, x = log(r), color = "AbbOG"), linetype = "solid") + 
+  geom_line(aes(y = bioOG, x = log(r), color="BioOG"), linetype = "solid") +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Old Grown") +
+  scale_color_manual(values = c("AbbOG" = "red", "BioOG" = "darkblue"),
+                     labels = c("AbbOG" = "Abundance", "BioOG" = "Biomass"))
+
+grid.arrange(abc_EU, abc_RE, abc_SE, abc_SL, abc_OG, nrow=3)
 
 
 #################################### CORRELATIONS ######################################à
@@ -381,19 +418,19 @@ MS_FM_bar <- ggplot(env, aes(x=FP, y=chao2richness, fill=FP, color=FP)) +
   ggtitle("Mammal species richness per Forest plot") + 
   scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"))+
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"))
-MS_FM_bar
+MSchao_FM_bar
 
 MS_FM_box <- ggplot() + 
   geom_boxplot(env, mapping = aes(FM, chao2richness, color = FM)) + labs(x = "Forest Management type", y = "Mammal species richness") +
   ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-MS_FM_box
+MSchao_FM_box
 
 
 MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=chao2richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Altitdude")+
   labs(y="Mammal species richness", x="Altitude")
-MS_AL_sca 
+MSchao_AL_sca 
 
 cor.test(env$altitude, env$chao2richness)
 #cor 
@@ -404,14 +441,14 @@ MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=chao2richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Total plot biomass")+
   labs(y="Mammal species richness", x="Total plot biomass")
-MS_TB_sca
+MSchao_TB_sca
 
 
 MS_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=chao2richness))+
   geom_point(mapping = aes(x=simpson, y=chao2richness, color = FM)) + 
   ggtitle("Mammal species richness vs Simpson diversity index")+
   labs(y="Mammal species richness", x="Simpson diversity index")
-MS_TDsi_sca + geom_smooth(method = "lm")
+MSchao_TDsi_sca + geom_smooth(method = "lm")
 
 cor.test(env$simpson, env$chao2richness)
 #     cor 
@@ -422,7 +459,7 @@ MS_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=chao2richness))+
   geom_point(mapping = aes(x=shannon, y=chao2richness, color = FM)) + 
   ggtitle("Mammal species richness vs Shannon diversity index")+
   labs(y="Mammal species richness", x="Shannon diversity index")
-MS_TDsh_sca + geom_smooth(method = "lm")
+MSchao_TDsh_sca + geom_smooth(method = "lm")
 
 cor.test(env$shannon, env$chao2richness)
 #     cor 
