@@ -199,7 +199,7 @@ lines(log(r), abbOG, type = "l", col = "red")
 library(vegan)
 library(ggplot2)
 
-# calculating tree diversity
+# calculating tree diversity for each plot using both simpson and shannon diversity index
 si <- diversity(CM_TD[,-1], index = "simpson")
 sh <- diversity(CM_TD[,-1], index = "shannon")
 
@@ -243,7 +243,6 @@ str(env)
 
 
 ########################## correlating tree diversity and forest management categories
-
 TD_FM_barsh <- ggplot(env, aes(x=FP, y=shannon, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Shannon Diversity index") +
@@ -272,7 +271,6 @@ TD_FM_boxsi
 
 
 ######################### correlating altitude and tree diversity
-
 TD_AL_scarsi <- ggplot(env, mapping = aes(x=altitude, y=simpson))+
   geom_point( mapping = aes(x=altitude, y=simpson, color = FM)) + 
   ggtitle("Simpson Diversity index vs Altitdude")+
@@ -292,7 +290,7 @@ cor.test(env$altitude, env$shannon)
 #-0.1431953 
 
 
-# TB_FM
+############################# correlating tree biomass and forest management 
 TB_FM_bar <- ggplot(env, aes(x=FP, y=biomass, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") +
   labs(x = "Forest plot", y="Total plot biomass")+
@@ -306,7 +304,8 @@ TB_FM_box <- ggplot() +
   ggtitle("Mean total plot biomass per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
 TB_FM_box
 
-# altitude - tree biomass
+
+############################## correlating altitude and tree biomass
 TB_AL_scar <- ggplot(env, mapping = aes(x=altitude, y=biomass))+
   geom_point(mapping = aes(x=altitude, y=biomass, color = FM)) + 
   ggtitle("Total plot biomass vs Altitdude")+
@@ -317,7 +316,7 @@ cor.test(env$altitude, env$biomass)
 #cor 
 #0.8452422 
 
-# mammal richness correlation
+############################# correlating mammal richness and forest management
 MS_FM_bar <- ggplot(env, aes(x=FP, y=richness, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Mammal species richness") +
@@ -332,6 +331,7 @@ MS_FM_box <- ggplot() +
 MS_FM_box
 
 
+########################### correlating mammal richness and altitude
 MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Altitdude")+
@@ -343,6 +343,7 @@ cor.test(env$altitude, envrichness)
 #-0.05955166 
 
 
+############################# correlating mammal richness and biomass
 MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richness))+
   geom_point() + 
   ggtitle("Mammal species richness vs Total plot biomass")+
@@ -350,6 +351,7 @@ MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richness))+
 MS_TB_sca
 
 
+########################### correlating mammal richness and tree diversity
 MS_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=richness))+
   geom_point(mapping = aes(x=simpson, y=richness, color = FM)) + 
   ggtitle("Mammal species richness vs Simpson diversity index")+
@@ -372,7 +374,7 @@ cor.test(env$shannon, env$richness)
 #0.5826966 
 
 
-## mammal sr con chao
+#################### mammal sr calculated with chao2
 MS_FM_bar <- ggplot(env, aes(x=FP, y=chao2richness, fill=FP, color=FP)) + 
   geom_bar(stat = "identity") + 
   labs(x = "Forest plot", y = "Mammal species richness") +
