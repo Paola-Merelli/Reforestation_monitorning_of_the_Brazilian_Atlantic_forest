@@ -3,972 +3,814 @@ library(ggplot2)
 library(gridExtra)
 library(vegan)
 
-#curveabc
-CM_TD <- read.csv("CM_TD.csv")
-CM_TD
-CM_TB <- read.csv("CM_TB.csv")
-CM_TB
 
-############EUCALIPTO
-#abbondanza tot ogni sp in ordine decrescente
-abbEU <- sort(colSums(CM_TD[1:3, -1]), decreasing = T)
-abbEU
-#abbondanza cumulata
-abbEU <- cumsum(abbEU)
-abbEU
-#abbondanza relativa cumulata
-abbEU <- abbEU/max(abbEU)
-abbEU
-#creare il rango
-r <- seq(1, length(abbEU), 1)
-bioEU <- sort(colSums(CM_TB[1:3,-1]), decreasing = T) 
-bioEU <- cumsum(bioEU)
+####################### Biomass calculation #######################
+###################################################################
+
+SL3b <-read.csv("SL3b.csv")
+
+### biomass calculation with chave eq
+## AGB = exp(-2.977 + ln(rho(g/cm3) * D^2(cm) * H(cm)))
+
+chave <- (SL3b[,10]*(SL3b[,9]^2)*SL3b[,7])
+chave
+SL3b <- cbind(SL3b, chave)
+
+chavefx <- function(x){
+  biom <- exp(-2.977 + log(x))
+  return(biom)
+}
+biomass_g <- chavefx(chave)
+biomass_g <- round(biomass_g, digits = 3)
+biomass_kg <- biomass_g / 1000
+biomass_kg <- round(biomass_kg, digits = 3)
+
+SL3b <- cbind(SL3b, biomass_g)
+SL3b <- cbind(SL3b, biomass_kg)
+
+write.csv(SL3b, "SL3b.csv")
+
+#### the same for each forest plot
+
+
+################################################### Disturbance rank ###################################################
+########################################################################################################################
+
+## abundance community matrices
+CMTD_EU <- read.csv("CMTD_EU.csv")
+CMTD_RE <- read.csv("CMTD_RE.csv")
+CMTD_SE <- read.csv("CMTD_SE.csv")
+CMTD_PF <- read.csv("CMTD_SL.csv")
+CMTD_MF <- read.csv("CMTD_OG.csv")
+
+## biomass community matrices
+CMTB_EU <- read.csv("CMTB_EU.csv")
+CMTB_RE <- read.csv("CMTB_RE.csv")
+CMTB_SE <- read.csv("CMTB_SE.csv")
+CMTB_PF <- read.csv("CMTB_SL.csv")
+CMTB_MF <- read.csv("CMTB_OG.csv")
+
+
+# species abundances by decreasing order
+abbonEU <- sort(colSums(CMTD_EU[,-1]), decreasing = T)
+abbonRE <- sort(colSums(CMTD_RE[,-1]), decreasing = T)
+abbonSE <- sort(colSums(CMTD_SE[,-1]), decreasing = T)
+abbonPF <- sort(colSums(CMTD_PF[,-1]), decreasing = T)
+abbonMF <- sort(colSums(CMTD_MF[,-1]), decreasing = T)
+
+## total n of individuals per category
+N_EU <- max(cumsum(abbonEU))
+N_RE <- max(cumsum(abbonRE))
+N_SE <- max(cumsum(abbonSE))
+N_PF <- max(cumsum(abbonPF))
+N_MF <- max(cumsum(abbonMF))
+
+#relative abundances
+w_EU <- abbonEU/N_EU
+w_RE <- abbonRE/N_RE
+w_SE <- abbonSE/N_SE
+w_PF <- abbonPF/N_PF
+w_MF <- abbonMF/N_MF
+
+#cumulative relative abundances
+abbEU <- cumsum(w_EU)
+abbRE <- cumsum(w_RE)
+abbSE <- cumsum(w_SE)
+abbPF <- cumsum(w_PF)
+abbMF <- cumsum(w_MF)
+
+
+## species biomass by decreasing order
+biomaEU <- sort(colSums(CMTB_EU[,-1]), decreasing =T)
+biomaRE <- sort(colSums(CMTB_RE[,-1]), decreasing = T)
+biomaSE <- sort(colSums(CMTB_SE[,-1]), decreasing = T)
+biomaPF <- sort(colSums(CMTB_PF[,-1]), decreasing = T)
+biomaMF <- sort(colSums(CMTB_MF[,-1]), decreasing = T)
+
+## total biomass
+Nbio_EU <- max(cumsum(biomaEU))
+Nbio_RE <- max(cumsum(biomaRE))
+Nbio_SE <- max(cumsum(biomaSE))
+Nbio_PF <- max(cumsum(biomaPF))
+Nbio_MF <- max(cumsum(biomaMF))
+
+## species relative biomass
+wbio_EU <- biomaEU/Nbio_EU
+wbio_RE <- biomaRE/Nbio_RE
+wbio_SE <- biomaSE/Nbio_SE
+wbio_PF <- biomaPF/Nbio_PF
+wbio_MF <- biomaMF/Nbio_MF
+
+## cumulative relative biomass
+bioEU <- cumsum(biomaEU)
 bioEU <- bioEU/max(bioEU)
-bioEU
-plot(log(r), abbEU, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Eucalyptus")
-lines(log(r), bioEU, type = "l", col = "blue")
 
-#REFORESTED
-abbRE <- sort(colSums(CM_TD[4:6,-1]), decreasing = T)
-abbRE
-#abbondanza cumulata
-abbRE <- cumsum(abbRE)
-abbRE
-#abbondanza relativa cumulata
-abbRE <- abbRE/max(abbRE)
-abbRE
-bioRE <- sort(colSums(CM_TB[4:6,-1]), decreasing = T) 
-bioRE <- cumsum(bioRE)
+bioRE <- cumsum(biomaRE)
 bioRE <- bioRE/max(bioRE)
-bioRE
-plot(log(r), abbRE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Reforested")
-lines(log(r), bioRE, type = "l", col = "blue")
 
-#SECONDARY
-abbSE <- sort(colSums(CM_TD[7:9,-1]), decreasing = T)
-abbSE
-#abbondanza cumulata
-abbSE <- cumsum(abbSE)
-abbSE
-#abbondanza relativa cumulata
-abbSE <- abbSE/max(abbSE)
-abbSE
-bioSE <- sort(colSums(CM_TB[7:9,-1]), decreasing = T) 
-bioSE <- cumsum(bioSE)
+bioSE <- cumsum(biomaSE)
 bioSE <- bioSE/max(bioSE)
-bioSE
-plot(log(r), abbSE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Secondary")
-lines(log(r), bioSE, type = "l", col = "blue")
 
-#SELECTIVE LOGGING
-abbSL <- sort(colSums(CM_TD[10:12,-1]), decreasing = T)
-abbSL
-#abbondanza cumulata
-abbSL <- cumsum(abbSL)
-abbSL
-#abbondanza relativa cumulata
-abbSL <- abbSL/max(abbSL)
-abbSL
-bioSL <- sort(colSums(CM_TB[10:12,-1]), decreasing = T) 
-bioSL <- cumsum(bioSL)
-bioSL <- bioSL/max(bioSL)
-bioSL
-plot(log(r), abbSL, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Selective Logging")
-lines(log(r), bioSL, type = "l", col = "blue")
+bioPF <- cumsum(biomaPF)
+bioPF <- bioPF/max(bioPF)
 
-#OLDGROWN
-abbOG <- sort(colSums(CM_TD[13:15,-1]), decreasing = T)
-abbOG
-#abbondanza cumulata
-abbOG <- cumsum(abbOG)
-abbOG
-#abbondanza relativa cumulata
-abbOG <- abbOG/max(abbOG)
-abbOG
-bioOG <- sort(colSums(CM_TB[13:15,-1]), decreasing = T) 
-bioOG <- cumsum(bioOG)
-bioOG <- bioOG/max(bioOG)
-bioOG
-plot(log(r), abbOG, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Old Grown")
-lines(log(r), bioOG, type = "l", col = "blue")
+bioMF <- cumsum(biomaMF)
+bioMF <- bioMF/max(bioMF)
+
+##################### species sequences
+rEU <- seq(1, length(abbEU), 1)
+rRE <- seq(1, length(abbRE), 1)
+rSE <- seq(1, length(abbSE), 1)
+rPF <- seq(1, length(abbPF), 1)
+rMF <- seq(1, length(abbMF), 1)
+
+######################species rank (abundances)
+rankEU <- rank(-abbonEU, ties.method="average")
+rankRE <- rank(-abbonRE, ties.method="average")
+rankSE <- rank(-abbonSE, ties.method="average")
+rankPF <- rank(-abbonPF, ties.method = "average")
+rankMF <- rank(-abbonMF, ties.method = "average")
+
+#################### species rank (biomass)
+rankbioEU <- rank(-biomaEU, ties.method="average")
+rankbioRE <- rank(-biomaRE, ties.method="average")
+rankbioSE <- rank(-biomaSE, ties.method="average")
+rankbioPF <- rank(-biomaPF, ties.method="average")
+rankbioMF <- rank(-biomaMF, ties.method="average")
 
 
-par(mfrow = c(2, 3))
-plot(log(r), abbEU, type = "l", col = "red", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Eucalyptus")
-lines(log(r), bioEU, type = "l", col = "blue")
-plot(log(r), abbRE, type = "l", col = "red", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Reforested")
-lines(log(r), bioRE, type = "l", col = "blue")
-plot(log(r), abbSE, type = "l", col = "red", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Secondary")
-lines(log(r), bioSE, type = "l", col = "blue")
-plot(log(r), abbSL, type = "l", col = "red", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Selective logging")
-lines(log(r), bioSL, type = "l", col = "blue")
-plot(log(r), abbOG, type = "l", col = "red", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Old grown")
-lines(log(r), bioOG, type = "l", col = "blue")
+#dataframes
+datEU <- data.frame(bioEU, abbEU, rEU, rankEU, rankbioEU, wbio_EU, w_EU)
+datRE <- data.frame(bioRE, abbRE, rRE, rankRE, rankbioRE, wbio_RE, w_RE)
+datSE <- data.frame(bioSE, abbSE, rSE, rankSE, rankbioSE, wbio_SE, w_SE)
+datPF <- data.frame(bioPF, abbPF, rPF, rankPF, rankbioPF, wbio_PF, w_PF)
+datMF <- data.frame(bioMF, abbMF, rMF, rankMF, rankbioMF, wbio_MF, w_MF)
+
+
+
+#############################################  ABC ####################################################
+
+plot( log(rEU, base = 10), abbEU, type = "l", col = "#5ec962", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Eucalyptus")
+lines(log(rEU, base = 10), bioEU, type = "l", col = "#440154")
+plot(log(rMF, base = 10), abbMF, type = "l", col = "#5ec962", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Mountain Forest")
+lines(log(rMF, base = 10), bioMF, type = "l", col = "#440154")
+plot(log(rRE, base = 10), abbRE, type = "l", col = "#5ec962", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Reforested")
+lines(log(rRE, base = 10), bioRE, type = "l", col = "#440154")
+plot(log(rSE, base = 10), abbSE, type = "l", col = "#5ec962", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Secondary")
+lines(log(rSE, base = 10), bioSE, type = "l", col = "#440154")
+plot(log(rPF, base = 10), abbPF, type = "l", col = "#5ec962", xlab = "Species' rank (log)", ylab = "Bio/Abb", main = "Primary Forest")
+lines(log(rPF, base = 10), bioPF, type = "l", col = "#440154")
+
 
 # plotting with ggplot
-dat <- data.frame(bioEU, abbEU, bioRE, abbRE, bioSE, abbSE, bioSL, abbSL, bioOG, abbOG, r)
+abc_EU <- ggplot(datEU) + 
+  geom_line(aes(y = abbEU, x = log(rEU, base = 10), linetype = "Abundance")) + 
+  geom_line(aes(y = bioEU, x = log(rEU, base = 10), linetype = "Biomass")) +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Eucalyptus") +
+  theme(legend.title = element_text(size = 10), 
+                               legend.direction = "vertical",
+                               legend.position = c(0.8, 0.4), text = element_text(size = 20))+
+  scale_linetype_manual(name="legend", values = c(Biomass = "solid", Abundance = "dashed"))
 
-abc_EU <- ggplot(dat) + 
-  geom_line(aes(y = abbEU, x = log(r)), color = "red") + 
-  geom_line(aes(y = bioEU, x = log(r)), color= "darkblue")+
+abc_MF <- ggplot(datMF) + 
+  geom_line(aes(y = abbMF, x = log(rMF, base = 10), linetype = "Abundance")) + 
+  geom_line(aes(y = bioMF, x = log(rMF, base = 10), linetype = "Biomass")) +
   labs(x = "Species rank (log)", y = "Bio/Abb") +
-  ggtitle("Eucalyptus")
-abc_RE <- ggplot(dat) + 
-  geom_line(aes(y = abbRE, x = log(r)), color = "red") + 
-  geom_line(aes(y = bioRE, x = log(r)), color="darkblue")+
-  labs(x = "Species rank (log)", y = "Bio/Abb") +
-  ggtitle("Reforested")
-abc_SE <- ggplot(dat) + 
-  geom_line(aes(y = abbSE, x = log(r)), color = "red") + 
-  geom_line(aes(y = bioSE, x = log(r)), color="darkblue") +
-  labs(x = "Species rank (log)", y = "Bio/Abb") +
-  ggtitle("Secondary")
-abc_SL <- ggplot(dat) + 
-  geom_line(aes(y = abbSL, x = log(r)), color = "red") + 
-  geom_line(aes(y = bioSL, x = log(r)), color="darkblue") +
-  labs(x = "Species rank (log)", y = "Bio/Abb") +
-  ggtitle("Selective Logging")
-abc_OG <- ggplot(dat) + 
-  geom_line(aes(y = abbOG, x = log(r), color = "AbbOG"), linetype = "solid") + 
-  geom_line(aes(y = bioOG, x = log(r), color="BioOG"), linetype = "solid") +
-  labs(x = "Species rank (log)", y = "Bio/Abb") +
-  ggtitle("Old Grown") +
-  scale_color_manual(values = c("AbbOG" = "red", "BioOG" = "darkblue"),
-                     labels = c("AbbOG" = "Abundance", "BioOG" = "Biomass"))
+  ggtitle("Mountain Forest") +
+  theme(legend.title = element_text(size = 10), 
+        legend.direction = "vertical",
+        legend.position = c(0.8, 0.4), text = element_text(size = 20))+
+  scale_linetype_manual(name="legend", values = c(Biomass = "solid", Abundance = "dashed"))
 
-grid.arrange(abc_EU, abc_RE, abc_SE, abc_SL, abc_OG, nrow=3)
+abc_RE <- ggplot(datRE) + 
+  geom_line(aes(y = abbRE, x = log(rRE, base = 10), linetype = "Abundance")) + 
+  geom_line(aes(y = bioRE, x = log(rRE, base = 10), linetype = "Biomass")) +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Reforested areas") +
+  theme(legend.title = element_text(size = 10), 
+        legend.direction = "vertical",
+        legend.position = c(0.8, 0.4), text = element_text(size = 20))+
+  scale_linetype_manual(name="legend", values = c(Biomass = "solid", Abundance = "dashed"))
 
-png("plot/1_abclog_ggplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(abc_EU, abc_RE, abc_SE, abc_SL, abc_OG, nrow=3)
+abc_SE <- ggplot(datSE) + 
+  geom_line(aes(y = abbSE, x = log(rSE, base = 10), linetype = "Abundance")) + 
+  geom_line(aes(y = bioSE, x = log(rSE, base = 10), linetype = "Biomass")) +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Secondary Forest") +
+  theme(legend.title = element_text(size = 10), 
+        legend.direction = "vertical",
+        legend.position = c(0.8, 0.4), text = element_text(size = 20))+
+  scale_linetype_manual(name="legend", values = c(Biomass = "solid", Abundance = "dashed"))
+
+abc_PF <- ggplot(datPF) + 
+  geom_line(aes(y = abbPF, x = log(rPF, base = 10), linetype = "Abundance")) + 
+  geom_line(aes(y = bioPF, x = log(rPF, base = 10), linetype = "Biomass")) +
+  labs(x = "Species rank (log)", y = "Bio/Abb") +
+  ggtitle("Primary Forest") +
+  theme(legend.title = element_text(size = 10), 
+        legend.direction = "vertical",
+        legend.position = c(0.8, 0.4), text = element_text(size = 20))+
+  scale_linetype_manual(name="legend", values = c(Biomass = "solid", Abundance = "dashed"))
+
+grid.arrange(abc_EU, abc_MF, abc_RE, abc_SE, abc_PF, nrow=3)
+
+png("1_abc_seq.png", res=300, width = 6000, height= 3000)
+grid.arrange(abc_EU, abc_MF, abc_RE, abc_SE, abc_PF, nrow=3)
 dev.off()
 
+
+
+################################### diversity distribution analysis#####################################
+
+############### RELATIVE ABUNDANCE/SPECIES GRAPH
+# y: relative cumulative abundance
+# x: species as sequential numbers
+#basic plot
+plot(rPF, abbPF, type = "l", col= "#fde725", xlab = "Species", ylab = "Cumulative relative abundance")
+lines(rSE, abbSE, type = "l", col = "#5ec962")
+lines(rRE, abbRE, type = "l", col = "#21918c")
+lines(rMF, abbMF, type = "l", col = "#3b528b")
+lines(rEU, abbEU, type = "l", col = "#440154")
+
+#ggplot
+relab_graph <- ggplot() +
+  geom_line(data=datEU, aes(y=abbEU, x=rEU, color = "AbbEU"), linetype = "solid", size=0.8)+
+  geom_line(data=datMF, aes(y=abbMF, x=rMF, color = "AbbMF"), linetype = "solid", size=0.8)+
+  geom_line(data=datRE, aes(y=abbRE, x=rRE, color = "AbbRE"), linetype = "solid", size=0.8)+
+  geom_line(data=datSE, aes(y=abbSE, x=rSE, color = "AbbSE"), linetype = "solid", size=0.8)+
+  geom_line(data=datPF, aes(y=abbPF, x=rPF, color = "AbbPF"), linetype = "solid", size=0.8)+
+  labs(x = "Species", y = "Cumulative relative abundance") +
+  ggtitle("Species/Relative abundance graph") +
+  scale_color_manual(name = "FM", values = 
+                       c(
+                         "AbbEU" = "#440154", 
+                         "AbbMF"="#3b528b", 
+                         "AbbRE" = "#21918c", 
+                         "AbbSE" = "#5ec962", 
+                         "AbbPF"="#fde725"),
+                     labels = 
+                       c(
+                         "AbbEU" = "EU", 
+                         "AbbMF"="MF", 
+                         "AbbRE" = "RE", 
+                         "AbbSE" = "SE", 
+                         "AbbPF"="PF"),
+                     breaks = 
+                       c("AbbEU", 
+                         "AbbMF", 
+                         "AbbRE", 
+                         "AbbSE", 
+                         "AbbPF"))
+relab_graph <- relab_graph + theme(text = element_text(size = 20)) +
+  guides(color = guide_legend(override.aes = list(linewidth = 2)))
+relab_graph
+
+
+###################  McNaughton dominance [(N1 + N2)/2N]*100
+Dmn_EU <- ((abbonEU[1] + abbonEU[2]) / (2*N_EU))*100
+Dmn_EU # 29.07
+Dmn_MF <- ((abbonMF[1] + abbonMF[2]) / (2*N_MF))*100
+Dmn_MF # 26.21
+Dmn_RE <- ((abbonRE[1] + abbonRE[2]) / (2*N_RE))*100
+Dmn_RE # 14.06
+Dmn_SE <- ((abbonSE[1] + abbonSE[2]) / (2*N_SE))*100
+Dmn_SE # 12.86
+Dmn_PF <- ((abbonPF[1] + abbonPF[2]) / (2*N_PF))*100
+Dmn_PF # 9.41
+
+
+##################### curve di k dominanza
+# x: rango delle sp in base all'abbondanza decrescente
+# y: abbondanza relativa cumulata decrescente
+plot(rankPF, abbPF, type = "l", col="#fde725", xlab = "Species' rank", ylab = "Cumulative relative abundance")
+lines(rankSE, abbSE, type = "l", col = "#5ec962")
+lines(rankRE, abbRE, type = "l", col = "#21918c")
+lines(rankMF, abbMF, type = "l", col = "#3b528b")
+lines(rankEU, abbEU, type = "l", col = "#440154")
+
+kdom__graph <- ggplot() +
+  geom_line(data=datEU, aes(y=abbEU, x=log10(rEU), color = "AbbEU"), linetype = "solid", size=0.8)+
+  geom_line(data=datRE, aes(y=abbRE, x=log10(rRE), color = "AbbRE"), linetype = "solid", size=0.8)+
+  geom_line(data=datSE, aes(y=abbSE, x=log10(rSE), color = "AbbSE"), linetype = "solid", size=0.8)+
+  geom_line(data=datPF, aes(y=abbPF, x=log10(rPF), color = "AbbPF"), linetype = "solid", size=0.8)+
+  geom_line(data=datMF, aes(y=abbMF, x=log10(rMF), color = "AbbMF"), linetype = "solid", size=0.8)+
+  labs(x = "Species' rank (log)", y = "Cumulative relative abundance") +
+  ggtitle("K dominance curves") +
+  scale_color_manual(name = "FM",
+    values = c(
+        "AbbEU" = "#440154", 
+        "AbbMF"="#3b528b", 
+        "AbbRE" = "#21918c", 
+        "AbbSE" = "#5ec962", 
+        "AbbPF"="#fde725"),
+    labels = 
+      c("AbbEU" = "EU", 
+        "AbbRE" = "RE", 
+        "AbbSE" = "SE", 
+        "AbbPF"= "PF", 
+        "AbbMF"= "MF"),
+    breaks = 
+      c("AbbEU", 
+        "AbbMF", 
+        "AbbRE", 
+        "AbbSE", 
+        "AbbPF"))
+kdom__graph <- kdom__graph + theme(text = element_text(size = 20))+
+  guides(color = guide_legend(override.aes = list(linewidth = 2)))
+kdom__graph
+
+png("2_kdom_graph.png", res=300, width = 4000, height= 3000)
+grid.arrange(relab_graph, kdom__graph, nrow=2)
+dev.off()
+
+####################### rank abundance plot #######################
+#abundances
+plot(rankPF, w_PF, type = "l", col="#fde725", xlab = "Species' rank (con rank)", ylab = "Relative Abundance", main = "Whittaker plot")
+lines(rankRE, w_RE, type = "l", col = "#5ec962")
+lines(rankSE, w_SE, type = "l", col="#5ec962")
+lines(rankEU, w_EU, type = "l", col="#440154")
+lines(rankMF, w_MF, type = "l", col="#3b528b")
+legend("topright", legend = c("EU", "MF", "RE", "SE", "PF"), col = c("#440154", "#5ec962", "#5ec962", "#fde725", "#3b528b"), lty = 1, cex = 0.3)
+
+#ggplot
+wp_rank_ggp <- ggplot() +
+  geom_line(data=datEU, aes(y= w_EU, x=rankEU, color = "AbbEU"), linetype = "solid", size=0.7)+
+  geom_line(data=datRE, aes(y=w_RE, x=rankRE, color = "AbbRE"), linetype = "solid", size=0.7)+
+  geom_line(data=datSE, aes(y=w_SE, x=rankSE, color = "AbbSE"), linetype = "solid", size=0.7)+
+  geom_line(data=datPF, aes(y=w_PF, x=rankPF, color = "AbbPF"), linetype = "solid", size=0.7)+
+  geom_line(data=datMF, aes(y=w_MF, x=rankMF, color = "AbbMF"), linetype = "solid", size=0.7)+
+  labs(x = "Species' rank", y = "Relative abundance") +
+  ggtitle("Whittaker plot (Abundance)") +
+  scale_color_manual(name = "FM", values = c("AbbEU" = "#440154", "AbbRE" = "#5ec962", "AbbSE" = "#5ec962", "AbbPF"="#fde725", "AbbMF"="#3b528b"),
+                     labels = c("AbbEU" = "EU", "AbbRE" = "RE", "AbbSE" = "SE", "AbbPF"="PF", "AbbMF"="MF"),
+                       breaks = 
+                       c("AbbEU", 
+                         "AbbMF", 
+                         "AbbRE", 
+                         "AbbSE", 
+                         "AbbPF"))
+wp_rank_ggp <- wp_rank_ggp + theme(text = element_text(size = 20))+
+  guides(color = guide_legend(override.aes = list(linewidth = 2)))
+wp_rank_ggp
+
+
+#biomass
+plot(rankbioPF,  wbio_PF, type = "l", col="#fde725", xlab = "Species' rank", ylab = "Relative total biomass", main = "Whittaker plot - biomass")
+lines(rankbioSE,  wbio_SE, type = "l", col="#5ec962")
+lines(rankbioRE,  wbio_RE, type = "l", col = "#5ec962")
+lines(rankbioMF,  wbio_MF, type = "l", col="#3b528b")
+lines(rankbioEU,  wbio_EU, type = "l", col="#440154")
+legend("topright", legend = c("EU", "RE", "SE", "PF", "MF"), col = c("#440154", "#5ec962", "#5ec962", "#fde725", "#3b528b"), lty = 1, cex = 0.4)
+
+#ggplot con rank
+wpbio_rank_graph <- ggplot() +
+  geom_line(data=datEU, aes(y= wbio_EU, x=rankbioEU, color = "AbbEU"), linetype = "solid", size=0.7)+
+  geom_line(data=datMF, aes(y= wbio_MF, x=rankbioMF, color = "AbbMF"), linetype = "solid", size=0.7)+
+  geom_line(data=datRE, aes(y= wbio_RE, x=rankbioRE, color = "AbbRE"), linetype = "solid", size=0.7)+
+  geom_line(data=datSE, aes(y= wbio_SE, x=rankbioSE, color = "AbbSE"), linetype = "solid", size=0.7)+
+  geom_line(data=datPF, aes(y= wbio_PF, x=rankbioPF, color = "AbbPF"), linetype = "solid", size=0.7)+
+  labs(x = "Species' rank", y = "Relative total biomass") +
+  ggtitle("Whittaker plot (Biomass)") +
+  scale_color_manual(name = "FM", values = c("AbbEU" = "#440154", "AbbRE" = "#5ec962", "AbbSE" = "#5ec962", "AbbPF"="#fde725", "AbbMF"="#3b528b"),
+                     labels = c("AbbEU" = "EU", "AbbRE" = "RE", "AbbSE" = "SE", "AbbPF"="PF", "AbbMF"="MF"),
+                     breaks = 
+                       c("AbbEU", 
+                         "AbbMF", 
+                         "AbbRE", 
+                         "AbbSE", 
+                         "AbbPF"))
+
+wpbio_rank_graph <- wpbio_rank_graph + theme(text = element_text(size = 20))+
+  guides(color = guide_legend(override.aes = list(linewidth = 2)))
+wpbio_rank_graph
+
+grid.arrange(wp_rank_ggp, wpbio_rank_graph, nrow=1)
+
+
+png("3_wp.png", res=300, width = 6000, height= 3000)
+grid.arrange(wp_rank_ggp, wpbio_rank_graph, nrow=1)
+dev.off()
+
+
+
+########################################### correlation analysis #############################################
+##############################################################################################################
+
+CM_MS <- read.csv("CM_MS.csv")
+CM_TD <- read.csv("CM_TD.csv")
+
+
+#calculating mammal sr
+sr_MS <- specnumber(CM_MS[,-1])
+sr_MS
+
+#calculating tree species richness
+sr_TD <- specnumber(CM_TD[,-1])
+sr_TD
 
 
 # calculating tree diversity
 # SIMPSON diversity index
 si <- diversity(CM_TD[,-1], index = "simpson")
+
 # SHANNON diversity index
 sh <- diversity(CM_TD[,-1], index = "shannon")
+
 ## AED, absolute effective diversity
 # AED = H0 + [(H1)^2/2*H2]
 # H0=S, H1=exp-shahnnon, H2=1/simpson
 H0 <- specnumber(CM_TD[,-1])
 H1 <- exp(sh)
-H2 <- 1/si
-AED <- H0 + ((H1)^2/2*H2)
-AED
+H2 <- diversity(CM_TD[,-1], index = "invsimpson")
+AED <- H0 + (((H1)^2)/(2*H2))
 
-# calculating pielou eveness J=H'/log2S
-ev <- sh/log(sr_TD, base = 2)
 
 #calculating total plot biomass
-totbio <- rowSums(CM_TB[,-1], na.rm = T)
+totbioeu <- rowSums(CMTB_EU[,-1], na.rm = T)
+totbiore <- rowSums(CMTB_RE[,-1], na.rm = T)
+totbiose <- rowSums(CMTB_SE[,-1], na.rm = T)
+totbiopf <- rowSums(CMTB_SL[,-1], na.rm = T)
+totbiomf <- rowSums(CMTB_OG[,-1], na.rm = T)
 
-#calculating mammal sr
-CM_MS <- read.csv("CM_MS.csv")
-CM_MS[is.na(CM_MS)] <- 0
-CM_MS <- CM_MS[-(16:28),]
-sr_MS <- specnumber(CM_MS[,-1])
-
-# with chao2
-F1 <- 6
-F2 <- 3
-chaof <- (F1^2)/(2*F2)
-chaof
-chao2fx <- function(x){
-  rich <- x + chaof
-  return(rich)
-}
-chao2 <- chao2fx(sr_MS)
 
 # creating the data frame with all the variables
 env <- data.frame(
-  FP = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"),
-  FM = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "SL", "SL", "SL", "OG", "OG", "OG"),
+  FP = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "PF1", "PF2", "PF3", "MF1", "MF2", "MF3"),
+  FM = c("EU", "EU", "EU", "RE", "RE", "RE", "SE", "SE", "SE", "PF", "PF", "PF", "MF", "MF", "MF"),
   simpson = si,
   shannon = sh,
   AED = AED,
-  eveness = ev,
   altitude = c(999, 919, 887, 947, 794, 715, 824, 748, 818, 999, 757, 1189, 1248, 1268, 1314),
-  biomass = totbio,
-  treerichness = sr_TD,
+  biomass = c(totbioeu, totbiore, totbiose, totbiopf, totbiomf),
   richness = sr_MS,
-  chao2richness = chao2)
-env$FM <- factor(env$FM, ordered = T, levels = c("EU", "RE", "SE", "SL", "OG"))
-env$FP <- factor(TD_FM_abs$plot, ordered = T, levels = c("EU1", "EU2", "EU3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "SL1", "SL2", "SL3", "OG1", "OG2", "OG3"))
+  richnesstree = sr_TD))
+
+env$FM <- factor(env$FM, ordered = T, levels = c("EU", "MF", "RE", "SE", "PF"))
+env$FP <- factor(env$FP, ordered = T, levels = c("EU1", "EU2", "EU3", "MF1", "MF2", "MF3", "RE1", "RE2", "RE3", "SE1", "SE2", "SE3", "PF1", "PF2", "PF3"))
 str(env)
 
+#nb all correlations are with spearman 
+####################### Correlating ecological variables and forest management
 
-####################### Correlating tree diveristy and forest management
-
-## barplots: diversity value per plot
+## barplots: tree diversity value per plot
 TD_FM_barsh <- ggplot(env, aes(x=FP, y=shannon, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Shannon Diversity index") +
-  ggtitle("Shannon diversity index per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
+  geom_bar(width = 0.65, stat = "identity") + 
+  labs(x = " ", y = "Shannon (H')") +
+  ggtitle("Diversity indexes per Forest plot") + 
+  scale_fill_manual(values = c("#440154", "#440154", "#440154","#3b528b", "#3b528b", "#3b528b", "#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-TD_FM_barsh
+TD_FM_barsh <- TD_FM_barsh + theme(text = element_text(size = 25))
 
 TD_FM_barsi <- ggplot(env, aes(x=FP, y=simpson, fill=FP, color = FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Simpson Diversity index") +
-  ggtitle("Simpson diversity index per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
+  geom_bar(width = 0.65,stat = "identity") + 
+  labs(x = " ", y = "Simpson (D)") +
+  scale_fill_manual(values = c("#440154", "#440154", "#440154", "#3b528b", "#3b528b", "#3b528b","#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide = "none")
-TD_FM_barsi
+TD_FM_barsi <- TD_FM_barsi + theme(text = element_text(size = 25))
 
 AED_FM_bar <- ggplot(env, aes(x=FP, y=AED, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Absolute Effective Diversity") +
-  ggtitle("Absolute Effective diversity index per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
+  geom_bar(width = 0.65,stat = "identity") + 
+  labs(x = "Forest plot", y = "AED") +
+  scale_fill_manual(values = c("#440154", "#440154", "#440154", "#3b528b", "#3b528b", "#3b528b","#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
   scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-AED_FM_bar
+AED_FM_bar <- AED_FM_bar + theme(text = element_text(size = 25))
 
-grid.arrange(TD_FM_barsh, TD_FM_barsi, AED_FM_bar, nrow= 2)
-
-png("plot/2_diversity_barplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(TD_FM_barsh, TD_FM_barsi, AED_FM_bar, nrow= 2)
-dev.off()
-
-#### boxplot: mean diversity value per forest management
+## boxplot: tree diversity per forest management
 TD_FM_boxsh <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, shannon, color = FM)) + labs(x = "Forest Management type", y = "Shannon Diversity index") +
-  ggtitle("Mean Shannon diversity per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"), guide="none")
-TD_FM_boxsh
+  geom_boxplot(env, mapping = aes(FM, shannon, color = FM)) + labs(x = " ", y=" ") +
+  ggtitle("Diversity indexes per Forest Management type") + scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+TD_FM_boxsh <- TD_FM_boxsh + theme(text = element_text(size = 25))
 
 TD_FM_boxsi <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, simpson, color = FM)) + labs(x = "Forest Management type", y = "Simpson Diversity index") +
-  ggtitle("Mean Simpson diversity per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"), guide = "none")
-TD_FM_boxsi
+  geom_boxplot(env, mapping = aes(FM, simpson, color = FM)) + labs(x = " ", y=" ") +
+  scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+TD_FM_boxsi <- TD_FM_boxsi + theme(text = element_text(size = 25))
 
 AED_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, shannon, color = FM)) + labs(x = "Forest Management type", y = "Absolute Effective Diversity") +
-  ggtitle("Mean AED per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-AED_FM_box 
+  geom_boxplot(env, mapping = aes(FM, AED, color = FM)) + labs(x = "Forest Management type", y=" ") +
+  scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+AED_FM_box <- AED_FM_box + theme(text = element_text(size = 25))
 
-grid.arrange(TD_FM_boxsh, TD_FM_boxsi, AED_FM_box, nrow=2)
+png("4_diversity_FM.png", res=300, width = 6000, height= 3000)
+grid.arrange(TD_FM_barsh, TD_FM_boxsh, TD_FM_barsi, TD_FM_boxsi, AED_FM_bar, AED_FM_box, ncol=2)
+dev.off()
 
-png("plot/3_diversity_boxplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(TD_FM_boxsh, TD_FM_boxsi, AED_FM_box, nrow=2)
+
+## barplots:tree biomass per plot
+TB_FM_bar <- ggplot(env, aes(x=FP, y=biomass, fill=FP, color=FP)) + 
+  geom_bar(width = 0.65, stat = "identity") +
+  labs(x = " ", y="TB")+
+  ggtitle("Total plot biomass per forest plot")+
+  scale_fill_manual(values = c("#440154", "#440154", "#440154", "#3b528b", "#3b528b", "#3b528b", "#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
+  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide = "none")
+TB_FM_bar <- TB_FM_bar + theme(text = element_text(size = 20))
+
+## boxplot: tree biomass per forest management
+TB_FM_box <- ggplot() + 
+  geom_boxplot(env, mapping = aes(FM, biomass, color = FM)) + labs(x = " ", y = " ") +
+  ggtitle("Total plot biomass per Forest Management type") + scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+TB_FM_box <- TB_FM_box + theme(text = element_text(size = 20))
+
+
+## barplot: mammal richness per plot
+MS_FM_bar <- ggplot(env, aes(x=FP, y=richness, fill=FP, color=FP)) + 
+  geom_bar(width = 0.65, stat = "identity") + 
+  labs(x = " ", y = "Mammal S") +
+  ggtitle("Mammal species richness per Forest plot") + 
+  scale_fill_manual(values = c("#440154", "#440154", "#440154", "#3b528b", "#3b528b", "#3b528b","#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
+  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
+MS_FM_bar <- MS_FM_bar + theme(text = element_text(size = 20))
+MS_FM_bar
+
+## boxplot: mammal richness per forest management
+MS_FM_box <- ggplot() + 
+  geom_boxplot(env, mapping = aes(FM, richness, color = FM)) + labs(x = " ", y = "") +
+  ggtitle("Mammal species richness per Forest Management type") + scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+MS_FM_box <- MS_FM_box + theme(text = element_text(size = 20))
+MS_FM_box
+
+
+## barplot: tree species richness per plot
+TS_FM_bar <- ggplot(env, aes(x=FP, y=richnesstree, fill=FP, color=FP)) + 
+  geom_bar(width = 0.65, stat = "identity") + 
+  labs(x = " ", y = "Tree S") +
+  ggtitle("Tree species richness per Forest plot") + 
+  scale_fill_manual(values = c("#440154", "#440154", "#440154", "#3b528b", "#3b528b", "#3b528b","#21918c", "#21918c", "#21918c", "#5ec962", "#5ec962", "#5ec962", "#fde725", "#fde725", "#fde725"), guide="none")+
+  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
+TS_FM_bar <- TS_FM_bar + theme(text = element_text(size = 20))
+TS_FM_bar
+
+##boxplot: tree species richness per forest management
+TS_FM_box <- ggplot() + 
+  geom_boxplot(env, mapping = aes(FM, richnesstree, color = FM)) + labs(x = " ", y = "") +
+  ggtitle("Tree species richness per Forest Management type") + scale_color_manual(values = c("#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"))
+TS_FM_box <- TS_FM_box + theme(text = element_text(size = 20))
+TS_FM_box
+
+grid.arrange(TB_FM_bar, TB_FM_box, MS_FM_bar, MS_FM_box, TS_FM_bar, TS_FM_box, ncol=2)
+
+png("5_MS-TB_FM.png", res=300, width = 6000, height= 3000)
+grid.arrange(TB_FM_bar, TB_FM_box, TS_FM_bar, TS_FM_box, MS_FM_bar, MS_FM_box, ncol=2)
 dev.off()
 
 ################### correlating altitude - tree diversity
+cor.test(env$altitude, env$simpson, method = "spearman", exact = F)
+#rs = -0.21,  p-value = 0.4505
+
 TD_AL_scarsi <- ggplot(env, mapping = aes(x=altitude, y=simpson))+
-  geom_point( mapping = aes(x=altitude, y=simpson, color = FM)) + 
-  ggtitle("Simpson Diversity index vs Altitdude")+
-  labs(y="Simpson Diversity index", x="Altitude")
-TD_AL_scarsi
-cor.test(env$altitude, env$simpson)
-#cor 
-#-0.1432748 
+  geom_point( mapping = aes(x=altitude, y=simpson, color = FM), size = 3) + 
+  ggtitle("Simpson Diversity index vs Altitude")+
+  labs(y="Tree Diversity (D)", x="Altitude")+ 
+  annotate("text",x=1200, y= 0.65, 
+  label= "rs = -0.21
+  p = 0.4505", size=6)
+TD_AL_scarsi <-TD_AL_scarsi + theme(text = element_text(size = 20))
 
+
+cor.test(env$altitude, env$shannon, method = "spearman", exact = F)
+#rs = -0.22, p-value = 0.4273
 TD_AL_scarsh <- ggplot(env, mapping = aes(x=altitude, y=shannon))+
-  geom_point(mapping = aes(x=altitude, y=shannon, color = FM)) + 
-  ggtitle("Shannon Diversity index vs Altitdude")+
-  labs(y="Shannon Diversity index", x="Altitude")
-TD_AL_scarsh
-cor.test(env$altitude, env$shannon)
-#cor 
-#-0.1431953 
+  geom_point(mapping = aes(x=altitude, y=shannon, color = FM), size=3) + 
+  ggtitle("Shannon Diversity index vs Altitude")+
+  labs(y="Tree Diversity (H')", x="Altitude")+ 
+  annotate("text",x=1100, y= 1.7, 
+           label= "rs = -0.22
+  p = 0.4273", size=6)
+TD_AL_scarsh <- TD_AL_scarsh + theme(text = element_text(size = 20))
 
+
+cor.test(env$altitude, env$AED, method = "spearman", exact = F)
+#rs = -0.18,  p-value = 0.5281
 AED_AL_scar <- ggplot(env, mapping = aes(x=altitude, y=AED))+
-  geom_point( mapping = aes(x=altitude, y=AED, color = FM)) + 
-  ggtitle("Absolute Effective Diversity vs Altitdude")+
-  labs(y="Absolute Effective Diversity", x="Altitude")
-AED_AL_scar
-cor.test(env$altitude, env$AED)
-#     cor 
-# -0.150666
+  geom_point( mapping = aes(x=altitude, y=AED, color = FM), size = 3) + 
+  ggtitle("Absolute Effective Diversity vs Altitude")+
+  labs(y="Tree Diversity (AED)", x="Altitude")+ 
+  annotate("text",x=1100, y= 23, 
+           label= "rs = -0.18
+  p = 0.5281", size=6)
+AED_AL_scar <- AED_AL_scar + theme(text = element_text(size = 20))
 
-grid.arrange(TD_AL_scarsh, TD_AL_scarsi, AED_AL_scar, nrow=2)
-
-png("plot/4_TD-AL_scatterplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(TD_AL_scarsh, TD_AL_scarsi, AED_AL_scar, nrow=2)
-dev.off()
-
-########################## correlating TB_FM
-TB_FM_bar <- ggplot(env, aes(x=FP, y=biomass, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") +
-  labs(x = "Forest plot", y="Total plot biomass")+
-  ggtitle("Total plot biomass per forest plot")+
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
-  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide = "none")
-TB_FM_bar
-
-TB_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, biomass, color = FM)) + labs(x = "Forest Management type", y = "Total plot biomass") +
-  ggtitle("Mean total plot biomass per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-TB_FM_box
-
-grid.arrange(TB_FM_bar, TB_FM_box, nrow=1)
-
-png("plot/5_biomass_bbplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(TB_FM_bar, TB_FM_box, nrow=1)
+png("6_TD-AL.png", res=300, width = 6000, height= 3000)
+grid.arrange(TD_AL_scarsh, TD_AL_scarsi, AED_AL_scar, ncol=2)
 dev.off()
 
 ################### correlating altitude - tree biomass
 TB_AL_scar <- ggplot(env, mapping = aes(x=altitude, y=biomass))+
-  geom_point(mapping = aes(x=altitude, y=biomass, color = FM)) + 
-  ggtitle("Total plot biomass vs Altitdude")+
-  labs(y="Total plot biomass", x="Altitude") 
-TB_AL_scar <- TB_AL_scar + stat_smooth(method = "lm", geom = "smooth", col = "red")
-
-cor.test(env$altitude, env$biomass)
+  geom_point(mapping = aes(x=altitude, y=biomass, color = FM), size=3) + 
+  ggtitle("Total Plot Biomass vs Altitude")+
+  labs(y="TB", x="Altitude") + annotate("text",x=1200, y= 1000, 
+  label= "rs = 0.88
+        p = 1.717e-05", size=7)
+TB_AL_scar <- TB_AL_scar + stat_smooth(method = "lm", geom = "smooth", col = "red")+ theme(text = element_text(size = 20))
+cor.test(env$altitude, env$biomass, method = "spearman", exact = F)
 #cor 
-#0.8452422 
+#0.8775696  
 
-png("plot/6_TB-AL_scatterplot.png", res=300, width = 6000, height= 3000)
+png("7_TB-AL.png", res=300, width = 6000, height= 3000)
 TB_AL_scar
 dev.off()
 
+######### correlating tree and mammal richness with altitude
+MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=richness))+
+  geom_point(aes(x=altitude, y=richness, color=FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Altitude")+
+  annotate("text",x=1200, y= 7,
+  label= "rs = -0.28
+  p = 0.3149", size=6)+
+  labs(y="Mammal S", x="Altitude")+ theme(text = element_text(size = 20))
+cor.test(env$altitude, env$richness, method = "spearman", exact = F)
+#cor 
+#-0.2784672
+
+TS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=richnesstree))+
+  geom_point(aes(x=altitude, y=richnesstree, color=FM), size=3) + 
+  ggtitle("Tree Species Richness vs Altitude")+
+  annotate("text",x=1200, y= 37,
+  label= "rs = -0.13
+  p = 0.6378", size=6)+
+  labs(y="Tree S", x="Altitude")+ theme(text = element_text(size = 20))
+cor.test(env$altitude, env$richnesstree, method = "spearman", exact = F)
+#      rho 
+#-0.1324978 
+
+
+#MSchao_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=chao2richness))+
+#  geom_point(aes(x=altitude, y=chao2richness, color=FM),size=3) + 
+#  ggtitle("R = -0.64, p-value = 0.01002")+
+#  labs(y="Mammal species richness (Chao2)", x="Altitude") + theme(text = element_text(size = 20))
+#MSchao_AL_sca<- MSchao_AL_sca+ stat_smooth(method = "lm", geom = "smooth", col = "red")
+#cor.test(env$altitude, env$chao2richness, method = "spearman", exact = F)
+#cor 
+#-0.6410029
+
+png("8_MSchao-AL.png", res=300, width = 6000, height= 3000)
+grid.arrange(MS_AL_sca, TS_AL_sca, ncol=2)
+dev.off()
+
+
 ############## correlating tree diversity - tree biomass
-TD_TB_scarsh <- ggplot(env, mapping = aes(x=biomass, y=shannon))+
-  geom_point(mapping = aes(x=biomass, y=shannon, color = FM)) + 
-  ggtitle("Total plot biomass vs Shannon Diversity index")+
-  labs(y="Shannon Diversity index", x="Biomass") 
-TD_TB_scarsh 
-cor.test(env$biomass, env$shannon)
-##  cor 
-# 0.005908944 
+TD_TB_scarsh <- ggplot(env, mapping = aes(x=shannon, y=biomass))+
+  geom_point(mapping = aes(x=shannon, y=biomass, color = FM), size=3) + 
+  ggtitle("Total Plot Biomass vs Shannon Diversity")+
+  labs(y="TB", x="Tree Diversity (H')") +
+  annotate("text",x=3.2, y= 2300,
+           label= "rs = 0.08
+ p = 0.771", size=6)
+TD_TB_scarsh <- TD_TB_scarsh + theme(text = element_text(size = 20))
+cor.test(env$shannon, env$biomass, method = "spearman", exact=F)
+##R = 0.08, p-value = 0.771
 
-TD_TB_scarsi <- ggplot(env, mapping = aes(x=biomass, y=simpson))+
-  geom_point(mapping = aes(x=biomass, y=simpson, color = FM)) + 
-  ggtitle("Total plot biomass vs Simpson Diversity index")+
-  labs(y="Simpson Diversity index", x="Biomass") 
-TD_TB_scarsi
-cor.test(env$biomass, env$simpson)
-##       cor 
-## -0.04275704 
+TD_TB_scarsi <- ggplot(env, mapping = aes(x=simpson, y=biomass))+
+  geom_point(mapping = aes(x=simpson, y=biomass, color = FM), size=3) + 
+  ggtitle("Total Plot Biomass vs Simpson Diversity")+
+  labs(y="TB", x="Tree Diversity (D)") +
+  annotate("text",x=0.65, y= 2300,
+           label= "rs = 0.12
+   p = 0.6664", size=6)
+TD_TB_scarsi <- TD_TB_scarsi+ theme(text = element_text(size = 20))
+cor.test(env$simpson, env$biomass, method = "spearman", exact=F)
+#R = -0.12, p-value = 0.6664
 
-AED_TB_scar <- ggplot(env, mapping = aes(x=biomass, y=AED))+
-  geom_point( mapping = aes(x=biomass, y=AED, color = FM)) + 
-  ggtitle("Absolute Effective Diversity vs Biomass")+
-  labs(y="Absolute Effective Diversity", x="Biomass")
-AED_TB_scar
-cor.test(env$biomass, env$AED)
-##      cor 
-## 0.1619945 
+AED_TB_scar <- ggplot(env, mapping = aes(x=AED, y=biomass))+
+  geom_point( mapping = aes(x=AED, y=biomass, color = FM), size=3) + 
+  ggtitle("Total Plot Biomass vs Absolute Effective Diversity")+
+  labs(y="TB", x="AED")+
+  annotate("text",x=60, y= 2400,
+           label= "rs = 0.01
+   p = 0.9698", size=6)
+AED_TB_scar <- AED_TB_scar+ theme(text = element_text(size = 20))
+cor.test(env$AED, env$biomass, method = "spearman", exact = F)
+## R = 0.01, p-value = 0.9698
 
-png("plot/7_ATB-TD_scatterplot.png", res=300, width = 6000, height= 3000)
+png("9_TB-TD_scatterplot.png", res=300, width = 6000, height= 3000)
 grid.arrange(TD_TB_scarsh, TD_TB_scarsi, AED_TB_scar, nrow = 2 )
 dev.off()
 
-# mammal richness correlation
-MS_FM_bar <- ggplot(env, aes(x=FP, y=richness, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Mammal species richness") +
-  ggtitle("Mammal species richness per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
-  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-MS_FM_bar
 
-MS_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, richness, color = FM)) + labs(x = "Forest Management type", y = "Mammal species richness") +
-  ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-MS_FM_box
-
-grid.arrange(MS_FM_bar, MS_FM_box, nrow=1)
-
-png("plot/8_MS_bbplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MS_FM_bar, MS_FM_box, nrow=1)
-dev.off()
-
-MS_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=richness))+
-  geom_point(aes(x=altitude, y=richness, color=FM)) + 
-  ggtitle("Mammal species richness vs Altitdude")+
-  labs(y="Mammal species richness", x="Altitude")
-MS_AL_sca 
-cor.test(env$altitude, env$richness)
-#cor 
-#-0.05955166 
-
-MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richness))+
-  geom_point(aes(x= biomass, y=richness, color=FM)) + 
-  ggtitle("Mammal species richness vs Total plot biomass")+
-  labs(y="Mammal species richness", x="Total plot biomass")
-MS_TB_sca
-cor.test(env$biomass, env$richness)
-##       cor 
-## -0.02278801 
-
-grid.arrange(MS_AL_sca, MS_TB_sca, nrow=1 )
-
-png("plot/9_MS-TB-AL_scatterplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MS_AL_sca, MS_TB_sca, nrow=1 )
-dev.off()
-
+############## correlating mammal and tree richness and tree diversity
 MS_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=richness))+
-  geom_point(mapping = aes(x=simpson, y=richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Simpson diversity index")+
-  labs(y="Mammal species richness", x="Simpson diversity index")
-MS_TDsi_sca <- MS_TDsi_sca + geom_smooth(method = "lm")
+  geom_point(mapping = aes(x=simpson, y=richness, color = FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Simpson Diversity")+
+  annotate("text",x=0.9, y= 0,
+           label= "rs = 0.72
+       p = 0.002504", size=7)+
+  labs(y="Mammal S", x="Tree Diversity (D)")
+MS_TDsi_sca <- MS_TDsi_sca + geom_smooth(method = "lm")+ theme(text = element_text(size = 20))
 MS_TDsi_sca
-cor.test(env$simpson, env$richness)
-#     cor 
-#0.6170594
+cor.test(env$simpson, env$richness, method = "spearman", exact = F)
+#    rho 
+#0.7193412  
 
 MS_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=richness))+
-  geom_point(mapping = aes(x=shannon, y=richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Shannon diversity index")+
-  labs(y="Mammal species richness", x="Shannon diversity index")
-MS_TDsh_sca <- MS_TDsh_sca + geom_smooth(method = "lm")
+  geom_point(mapping = aes(x=shannon, y=richness, color = FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Shannon Diversity")+
+  annotate("text",x=3, y= 1,
+           label= "rs = 0.6
+       p = 0.02282", size=7)+
+  labs(y="Mammal S", x="Tree Diversity (H')")
+MS_TDsh_sca <- MS_TDsh_sca + geom_smooth(method = "lm") + theme(text = element_text(size = 20))
 MS_TDsh_sca
-cor.test(env$shannon, env$richness)
+cor.test(env$shannon, env$richness, method = "spearman", exact = F)
 #     cor 
-#0.5826966 
+#0.5820623
 
 MS_AED_sca <- ggplot(env, mapping = aes(x=AED, y=richness))+
-  geom_point(mapping = aes(x=AED, y=richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Effective Absolute Diversity")+
-  labs(y="Mammal species richness", x="Effective Absolute Diversity")
-MS_AED_sca <- MS_AED_sca + geom_smooth(method = "lm")
+  geom_point(mapping = aes(x=AED, y=richness, color = FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Absolute Effective Diversity")+
+  annotate("text",x=60, y= 2,
+           label= "rs = 0.5
+       p = 0.05578", size=7)+
+  labs(y="Mammal S", x="Tree Diversity (AED)")
+MS_AED_sca <- MS_AED_sca + geom_smooth(method = "lm") + theme(text = element_text(size = 20))
 MS_AED_sca
-cor.test(env$AED, env$richness)
+cor.test(env$AED, env$richness, method = "spearman", exact = F)
 ##     cor 
-# 0.5342926 
+# 0.5033558 
 
-grid.arrange(MS_TDsh_sca, MS_TDsi_sca, MS_AED_sca, nrow=2)
-
-png("plot/10_MS-TD_scatterplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MS_TDsh_sca, MS_TDsi_sca, MS_AED_sca, nrow=2)
-dev.off()
-
-## mammal sr con chao
-MSchao_FM_bar <- ggplot(env, aes(x=FP, y=chao2richness, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Mammal species richness (Chao2)") +
-  ggtitle("Mammal species richness per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
-  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-MSchao_FM_bar
-
-MSchao_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, chao2richness, color = FM)) + labs(x = "Forest Management type", y = "Mammal species richness (Chao2)") +
-  ggtitle("Mean mammal species richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"))
-MSchao_FM_box
-
-grid.arrange(MSchao_FM_bar, MSchao_FM_box, nrow=1)
-
-png("plot/11_MSchao_bbplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MSchao_FM_bar, MSchao_FM_box, nrow=1)
-dev.off()
+#MSchao_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=chao2richness))+
+#  geom_point(mapping = aes(x=simpson, y=chao2richness, color = FM), size=3) + 
+ # ggtitle("R = 0.6, p-value = 0.02407")+
+  #labs(y="Mammal species richness (Chao2)", x="Simpson diversity index")
+#MSchao_TDsi_sca <- MSchao_TDsi_sca + geom_smooth(method = "lm")+ theme(text = element_text(size = 20))
+#cor.test(env$simpson, env$chao2richness, method = "spearman", exact = F)
+#       rho 
+# 0.5778185  
 
 
-MSchao_AL_sca <- ggplot(env, mapping = aes(x=altitude, y=chao2richness))+
-  geom_point() + 
-  ggtitle("Mammal species richness vs Altitdude")+
-  labs(y="Mammal species richness (Chao2)", x="Altitude")
-MSchao_AL_sca 
-cor.test(env$altitude, env$chao2richness)
-#cor 
-#-0.05955166 
-
-MSchao_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=chao2richness))+
-  geom_point() + 
-  ggtitle("Mammal species richness vs Total plot biomass")+
-  labs(y="Mammal species richness (Chao2)", x="Total plot biomass")
-MSchao_TB_sca
-
-grid.arrange(MSchao_AL_sca, MSchao_TB_sca, nrow=1)
-
-png("plot/12_MSchao-TB-AL_scatterplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MSchao_AL_sca, MSchao_TB_sca, nrow=1)
-dev.off()
-
-MSchao_TDsi_sca <- ggplot(env, mapping = aes(x=simpson, y=chao2richness))+
-  geom_point(mapping = aes(x=simpson, y=chao2richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Simpson diversity index")+
-  labs(y="Mammal species richness (Chao2)", x="Simpson diversity index")
-MSchao_TDsi_sca <- MSchao_TDsi_sca + geom_smooth(method = "lm")
-cor.test(env$simpson, env$chao2richness)
+#MSchao_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=chao2richness))+
+#  geom_point(mapping = aes(x=shannon, y=chao2richness, color = FM), size=3) + 
+#  ggtitle("R = 0.5, p-value = 0.06473")+
+#  labs(y=" ", x="Shannon diversity index")
+#MSchao_TDsh_sca <- MSchao_TDsh_sca + geom_smooth(method = "lm")+ theme(text = element_text(size = 20))
+#cor.test(env$shannon, env$chao2richness, method = "spearman", exact = F)
 #     cor 
-#0.6170594
+#0.4883729 
 
-MSchao_TDsh_sca <- ggplot(env, mapping = aes(x=shannon, y=chao2richness))+
-  geom_point(mapping = aes(x=shannon, y=chao2richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Shannon diversity index")+
-  labs(y="Mammal species richness (Chao2)", x="Shannon diversity index")
-MSchao_TDsh_sca <- MSchao_TDsh_sca + geom_smooth(method = "lm")
-cor.test(env$shannon, env$chao2richness)
-#     cor 
-#0.5826966 
-
-MSchao_AED_sca <- ggplot(env, mapping = aes(x=AED, y=chao2richness))+
-  geom_point(mapping = aes(x=AED, y=chao2richness, color = FM)) + 
-  ggtitle("Mammal species richness vs Effective Absolute Diversity")+
-  labs(y="Mammal species richness (Chao2)", x="Effective Absolute Diversity")
-MSchao_AED_sca <- MSchao_AED_sca + geom_smooth(method = "lm")
-MSchao_AED_sca
-cor.test(env$AED, env$chao2richness)
+#MSchao_AED_sca <- ggplot(env, mapping = aes(x=AED, y=chao2richness))+
+#  geom_point(mapping = aes(x=AED, y=chao2richness, color = FM), size=3) + 
+#  ggtitle("R = 0.45, p-value = 0.09612")+
+#  labs(y=" ", x="Effective Absolute Diversity")
+#MSchao_AED_sca <- MSchao_AED_sca + geom_smooth(method = "lm") + theme(text = element_text(size = 20))
+#MSchao_AED_sca
+#cor.test(env$AED, env$chao2richness, method = "spearman", exact = F)
 ## cor 
-## 0.5342926
+## 0.445439
 
-grid.arrange(MSchao_TDsh_sca, MSchao_TDsi_sca, MSchao_AED_sca, nrow=2)
+  
+MS_TS_sca <- ggplot(env, mapping = aes(x=richnesstree, y=richness))+
+  geom_point(mapping = aes(x=richnesstree, y=richness, color = FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Tree Species Richness")+
+  annotate("text",x=42, y= 2.5,
+           label= "rs = 0.51
+     p = 0.05324", size=7)+
+  labs(y="Mammal S", x="Tree S")
+MS_TS_sca <- MS_TS_sca + geom_smooth(method = "lm") + theme(text = element_text(size = 20))
+cor.test(env$richnesstree, env$richness, method = "spearman", exact = F)
 
-png("plot/13_MSchao-TD_scatterplot.png", res=300, width = 6000, height= 3000)
-grid.arrange(MSchao_TDsh_sca, MSchao_TDsi_sca, MSchao_AED_sca, nrow=2)
+grid.arrange(MS_TS_sca, MS_TDsh_sca, MSchao_TDsh_sca, MS_TDsi_sca, nrow=4)
+
+png("10_MS-TD.png", res=300, width = 6000, height= 3000)
+grid.arrange(MS_TS_sca, MS_TDsh_sca, MS_TDsi_sca, MS_AED_sca, nrow=2)
 dev.off()
 
 
-################################# ALTRO ################################
-CM_TD <- read.csv("CM_TD.csv")
-CM_TD
-CM_MS <- read.csv("CM_MS.csv")
-CM_MS
-
-# species richness: n of sp per plot
-sr_TD <- specnumber(CM_TD[,-1])
-sr_TD
-sr_MS <- specnumber(CM_MS[,-1])
-sr_MS
-
-# species frequences
-snf_TD <- specnumber(CM_TD[,-1], MARGIN = 2)
-snf_TD # n di plot in cui ciascuna specie è presente
-snf_MS <- specnumber(CM_MS[,-1], MARGIN = 2)
-snf_MS
-
-# tot abundance per site
-ab <- rowSums(CM_TD[,-1])
-ab
-
-#tot abundance per species
-spab <- colSums(CM_TD[,-1])
-spab
-
-### calculating diversity indices
-# simpson
-si <- diversity(CM_TD[,-1], index = "simpson")
-si # Simpson Diversity index for each plot
-
-#shannon 
-sh <- diversity(CM_TD[,-1], index = "shannon")
-sh # Shannon diversity index for each plot
-
-## AED, absolute effective diversity, AED = H0 + [(H1)^2/2*H2]
-# H0=S, H1=exp-shahnnon, H2=1/simpson
-H0 <- specnumber(CM_TD[,-1])
-H1 <- exp(sh)
-H2 <- 1/si
-AED <- H0 + ((H1)^2/2*H2)
-AED
-
-# calculating pielou eveness J=H'/log2S
-ev <- sh/log(sr_TD, base = 2)
-
-# indice di dominanza di McNaughton
-Dmn_EU <- ((85+40)/(2*215))*100
-Dmn_EU # 29.07
-
-Dmn_RE <- ((45+36)/(2*288))*100
-Dmn_RE # 14.06
-
-Dmn_SE <- ((51+21)/(2*280))*100
-Dmn_SE # 12.86
-
-Dmn_SL <- ((32 + 32)/(2*340))*100
-Dmn_SL # 9.41
-
-Dmn_OG <- ((131 + 85)/(2*412))*100
-Dmn_OG # 26.21
-
-###### sp richness tree
-sr_TD
-SRT_FM_bar <- ggplot(env, aes(x=FP, y=treerichness, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "tree species richness") +
-  ggtitle("tree species richness per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
-  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-SRT_FM_bar
-
-SRT_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, treerichness, color = FM)) + labs(x = "Forest Management type", y = "Pielou eveness") +
-  ggtitle("Mean tree richness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"), guide="none")
-SRT_FM_box
-
-###### eveness
-EV_FM_bar <- ggplot(env, aes(x=FP, y=eveness, fill=FP, color=FP)) + 
-  geom_bar(stat = "identity") + 
-  labs(x = "Forest plot", y = "Pielou eveness") +
-  ggtitle("Pielou eveness per Forest plot") + 
-  scale_fill_manual(values = c("paleturquoise", "paleturquoise", "paleturquoise","lightyellow", "lightyellow", "lightyellow", "lightsalmon", "lightsalmon", "lightsalmon", "lightgreen", "lightgreen", "lightgreen", "thistle", "thistle", "thistle"), guide="none")+
-  scale_color_manual(values = c("black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black", "black"), guide="none")
-EV_FM_bar
-
-EV_FM_box <- ggplot() + 
-  geom_boxplot(env, mapping = aes(FM, eveness, color = FM)) + labs(x = "Forest Management type", y = "Pielou eveness") +
-  ggtitle("Mean Pielou eveness per Forest Management type") + scale_color_manual(values = c("deepskyblue1", "yellow3", "orangered1", "limegreen", "darkorchid"), guide="none")
-EV_FM_box
-
-grid.arrange(SRT_FM_bar, SRT_FM_box, EV_FM_bar, EV_FM_box, nrow = 2)
-
-png("plot/altro_ev_srt.png", res=300, width = 6000, height= 3000)
-grid.arrange(SRT_FM_bar, SRT_FM_box, EV_FM_bar, EV_FM_box, nrow = 2)
-dev.off()
-
-
-TD_EV_scarsh <- ggplot(env, mapping = aes(x=eveness, y=shannon))+
-  geom_point( mapping = aes(x=eveness, y=shannon, color = FM)) + 
-  ggtitle("Shannon Diversity index vs Pielou eveness")+
-  labs(y="Simpson Diversity index", x="Pielou evenss")
-TD_EV_scarsh <- TD_EV_scarsh + stat_smooth(method = "lm", geom = "smooth", col = "red")
-TD_EV_scarsh
-cor.test(env$eveness, env$shannon)
-#cor 
-#0.8764657
-
-AED_EV_scar <- ggplot(env, mapping = aes(x=eveness, y=AED))+
-  geom_point( mapping = aes(x=eveness, y=AED, color = FM)) + 
-  ggtitle("AED vs Pielou eveness")+
-  labs(y="AED", x="Pielou evenss")
-AED_EV_scar <- AED_EV_scar + stat_smooth(method = "lm", geom = "smooth", col = "red")
-AED_EV_scar
-cor.test(env$eveness, env$AED)
-#cor 
-#0.6774756 
-
-################################ diversity distribution analysis################################
-############### RELATIVE ABUNDANCE/SPECIES GRAPH
-# y: relative cumulative abundance
-# x: species as sequential numbers
-species <- seq(1, 170, 1)
-relab <- data.frame(abbEU, abbRE, abbSE, abbSL, abbOG, species)
-
-relab_graph <- ggplot(relab) +
-  geom_line(aes(y=abbEU, x=species, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=abbRE, x=species, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=abbSE, x=species, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=abbSL, x=species, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=abbOG, x=species, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species", y = "Cumulative relative abundance") +
-  ggtitle("Relative abundance graph") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus - Dmn = 29.07%", "AbbRE" = "Reforested - Dmn = 14.06%", "AbbSE" = "Secondary - Dmn = 12.86%", "AbbSL"="Selective logging - Dmn = 9.41%", "AbbOG"="Old grown - Dmn = 26.21%"))
-
-png("plot/altro_relabgraph.png", res=300, width = 6000, height= 3000)
-relab_graph
-dev.off()
-
-##################### curve di k dominanza
-# x: rango delle sp in base all'abbondanza decrescente
-# y: abbondanza relativa cumulata decrescente
-kdom_dat <- data.frame(abbEU, abbRE, abbSE, abbSL, abbOG, rankEU, rankRE, rankSE, rankSL, rankOG)
-
-kdom__graph <- ggplot(kdom_dat) +
-  geom_line(aes(y=abbEU, x=rankEU, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=abbRE, x=rankRE, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=abbSE, x=rankSE, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=abbSL, x=rankSL, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=abbOG, x=rankOG, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species' rank", y = "Cumulative relative abundance") +
-  ggtitle("K dominance curves") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus - Dmn = 29.07%", "AbbRE" = "Reforested - Dmn = 14.06%", "AbbSE" = "Secondary - Dmn = 12.86%", "AbbSL"="Selective logging - Dmn = 9.41%", "AbbOG"="Old grown - Dmn = 26.21%"))
-
-png("plot/altro_kdom_graph.png", res=300, width = 6000, height= 3000)
-kdom_graph
-dev.off()
-
-################## log series graph: X=abbondanze crescenti Y=numero di specie corrispondenti
-## EUCALYPTUS
-abonEU <- (sort(colSums(CM_TD[1:3,-1])))
-abonEU_freq <- table(abonEU)
-abonEU_data <- data.frame(Abundance = as.integer(names(abonEU_freq)),
-                             SpeciesCount = as.integer(abonEU_freq))
-abonEU_plot <- ggplot(abonEU_data, aes(x=Abundance, y=SpeciesCount)) +
-  geom_bar(stat = "identity")+
-  labs(x="Number of individuals", y="Number of species") +
-  ggtitle("Abundances distribution - Eucalyptus")
-abonEU_plot
-
-## REFORESTED
-abonRE <- (sort(colSums(CM_TD[4:6,-1])))
-abonRE_freq <- table(abonRE)
-abonRE_data <- data.frame(Abundance = as.integer(names(abonRE_freq)),
-                          SpeciesCount = as.integer(abonRE_freq))
-abonRE_plot <- ggplot(abonRE_data, aes(x=Abundance, y=SpeciesCount)) +
-  geom_bar(stat = "identity")+
-  labs(x="Number of individuals", y="Number of species") +
-  ggtitle("Abundances distribution - Reforested")
-abonRE_plot
-
-## SECONDARY
-abonSE <- (sort(colSums(CM_TD[7:9,-1])))
-abonSE_freq <- table(abonSE)
-abonSE_data <- data.frame(Abundance = as.integer(names(abonSE_freq)),
-                          SpeciesCount = as.integer(abonSE_freq))
-abonSE_plot <- ggplot(abonSE_data, aes(x=Abundance, y=SpeciesCount)) +
-  geom_bar(stat = "identity")+
-  labs(x="Number of individuals", y="Number of species") +
-  ggtitle("Abundances distribution - Secondary")
-abonSE_plot
-
-## SELECTIVE LOGGING
-abonSL <- (sort(colSums(CM_TD[10:12,-1])))
-abonSL_freq <- table(abonSL)
-abonSL_data <- data.frame(Abundance = as.integer(names(abonSL_freq)),
-                          SpeciesCount = as.integer(abonSL_freq))
-abonSL_plot <- ggplot(abonSL_data, aes(x=Abundance, y=SpeciesCount)) +
-  geom_bar(stat = "identity")+
-  labs(x="Number of individuals", y="Number of species") +
-  ggtitle("Abundances distribution - Selective Logging")
-abonSL_plot
-
-## OLG GROWN
-abonOG <- (sort(colSums(CM_TD[13:15,-1])))
-abonOG_freq <- table(abonOG)
-abonOG_data <- data.frame(Abundance = as.integer(names(abonOG_freq)),
-                          SpeciesCount = as.integer(abonOG_freq))
-abonOG_plot <- ggplot(abonOG_data, aes(x=Abundance, y=SpeciesCount)) +
-  geom_bar(stat = "identity")+
-  labs(x="Number of individuals", y="Number of species") +
-  ggtitle("Abundances distribution - Old Grown")
-abonOG_plot
-
-grid.arrange(abonEU_plot, abonRE_plot, abonSE_plot, abonSL_plot, abonOG_plot)
-
-png("plot/altro_logseries_graph.png", res=300, width = 6000, height= 3000)
-grid.arrange(abonEU_plot, abonRE_plot, abonSE_plot, abonSL_plot, abonOG_plot)
-dev.off()
-
-######## frequency of abundances group in categories, base 2 (log normal grapah)
-ab_cat_SL <- case_when(colSums(CM_TD[1:3,-1])<2~1,
-                       colSums(CM_TD[10:12,-1])<4~2,
-                       colSums(CM_TD[10:12,-1])<8~3,
-                       colSums(CM_TD[10:12,-1])<16~4,
-                       colSums(CM_TD[10:12,-1])<32~5,
-                       colSums(CM_TD[10:12,-1])<64~6,
-                       colSums(CM_TD[10:12,-1])<128~7,
-                       colSums(CM_TD[10:12,-1])<256~8)
-hist(ab_cat_SL)
-
-
-####################### grafico rango abbondanza #######################
-# elenco di sp con abbondanza totale per ogni FM, ordinate dalla piu alla meno abb
-w_p <- data.frame(abb_EU = sort(colSums(CM_TD[1:3,-1]), decreasing = T),
-                  abb_RE = sort(colSums(CM_TD[4:6,-1]), decreasing = T),
-                  abb_SE = sort(colSums(CM_TD[7:9,-1]), decreasing = T),
-                  abb_SL = sort(colSums(CM_TD[10:12,-1]), decreasing = T), 
-                  abb_OG = sort(colSums(CM_TD[13:15,-1]), decreasing = T))
-w_EU <- w_p$abb_EU
-w_RE <- w_p$abb_RE
-w_SE <- w_p$abb_SE
-w_SL <- w_p$abb_SL
-w_OG <- w_p$abb_OG
-
-#ranghi per asse x
-rankEU <- rank(-w_EU, ties.method="average")
-rankRE <- rank(-w_RE, ties.method="average")
-rankSE <- rank(-w_SE, ties.method="average")
-rankSL <- rank(-w_SL, ties.method = "average")
-rankOG <- rank(-w_OG, ties.method = "average")
-
-# oppure
-r <- seq(1, 170, 1)
-
-# calcolo N per ogni forest management
-N_EU <- max(cumsum(w_EU))
-N_RE <- max(cumsum(w_RE))
-N_SE <- max(cumsum(w_SE))
-N_SL <- max(cumsum(w_SL))
-N_OG <- max(cumsum(w_OG))
-#per poi rendere le abbondanze relative
-w_EU <- w_EU/N_EU
-w_RE <- w_RE/N_RE
-w_SE <- w_SE/N_SE
-w_SL <- w_SL/N_SL
-w_OG <- w_OG/N_OG
-
-# plot con r su asse x
-plot(r, log(w_EU, base = 10), type = "l", col="blue", xlab = "Species' rank (con seq)", ylab = "Relative Abundance", main = "Whittaker plot")
-lines(r, log(w_RE, base = 10), type = "l", col = "yellow")
-lines(r, log(w_SE, base = 10), type = "l", col="red")
-lines(r, log(w_SL, base = 10), type = "l", col="green")
-lines(r, log(w_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 0.3)
-
-#plot con rank su asse x
-plot(rankEU, log(w_EU, base = 10), type = "l", col="blue", xlab = "Species' rank (con rank)", ylab = "Relative Abundance", main = "Whittaker plot")
-lines(rankRE, log(w_RE, base = 10), type = "l", col = "yellow")
-lines(rankSE, log(w_SE, base = 10), type = "l", col="red")
-lines(rankSL, log(w_SL, base = 10), type = "l", col="green")
-lines(rankOG, log(w_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 0.3)
-
-w_p_dat <- data.frame(w_EU, w_RE, w_SE, w_SL, w_OG, r, rankEU, rankRE, rankSE, rankSL, rankOG)
-w_pr_ggp <- ggplot(w_p_dat) +
-  geom_line(aes(y=log(w_EU, base = 10), x=r, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=log(w_RE, base = 10), x=r, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=log(w_SE, base = 10), x=r, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=log(w_SL, base = 10), x=r, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=log(w_OG, base = 10), x=r, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species' rank (con seq)", y = "Relative abundance") +
-  ggtitle("Whittaker plot") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus", "AbbRE" = "Reforested", "AbbSE" = "Secondary", "AbbSL"="Selective logging", "AbbOG"="Old grown"))
-w_pr_ggp
-
-w_prank_ggp <- ggplot(w_p_dat) +
-  geom_line(aes(y=log(w_EU, base = 10), x=rankEU, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=log(w_RE, base = 10), x=rankRE, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=log(w_SE, base = 10), x=rankSE, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=log(w_SL, base = 10), x=rankSL, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=log(w_OG, base = 10), x=rankOG, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species' rank (con rank)", y = "Relative abundance") +
-  ggtitle("Whittaker plot") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus", "AbbRE" = "Reforested", "AbbSE" = "Secondary", "AbbSL"="Selective logging", "AbbOG"="Old grown"))
-w_prank_ggp
-
-
-png("plot/altro_wpplot_graph.png", res=300, width = 6000, height= 3000)
-par(mfrow=c(1, 2))
-plot(r, log(w_EU, base = 10), type = "l", col="blue", xlab = "Species' rank (con seq)", ylab = "Relative Abundance", main = "Whittaker plot")
-lines(r, log(w_RE, base = 10), type = "l", col = "yellow")
-lines(r, log(w_SE, base = 10), type = "l", col="red")
-lines(r, log(w_SL, base = 10), type = "l", col="green")
-lines(r, log(w_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-plot(rankEU, log(w_EU, base = 10), type = "l", col="blue", xlab = "Species' rank (con rank)", ylab = "Relative Abundance", main = "Whittaker plot")
-lines(rankRE, log(w_RE, base = 10), type = "l", col = "yellow")
-lines(rankSE, log(w_SE, base = 10), type = "l", col="red")
-lines(rankSL, log(w_SL, base = 10), type = "l", col="green")
-lines(rankOG, log(w_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-dev.off()
-
-png("plot/altro_wpggplot_graph.png", res=300, width = 6000, height= 3000)
-grid.arrange(w_pr_ggp, w_prank_ggp)
-dev.off()
-
-
-######### whittaker plot con biomassa
-w_p_bio <- data.frame(abioEU = sort(colSums(CM_TB[1:3,-1]), decreasing = T),
-                  abioRE = sort(colSums(CM_TB[4:6,-1]), decreasing = T),
-                  abioSE = sort(colSums(CM_TB[7:9,-1]), decreasing = T),
-                  abioSL = sort(colSums(CM_TB[10:12,-1]), decreasing = T), 
-                  abioOG = sort(colSums(CM_TB[13:15,-1]), decreasing = T))
-wbio_EU <- w_p_bio$abioEU
-wbio_RE <- w_p_bio$abioRE
-wbio_SE <- w_p_bio$abioSE
-wbio_SL <- w_p_bio$abioSL
-wbio_OG <- w_p_bio$abioOG
-
-#ranghi per asse x
-rankbioEU <- rank(-wbio_EU, ties.method="average")
-rankbioRE <- rank(-wbio_RE, ties.method="average")
-rankbioSE <- rank(-wbio_SE, ties.method="average")
-rankbioSL <- rank(-wbio_SL, ties.method = "average")
-rankbioOG <- rank(-wbio_OG, ties.method = "average")
-
-# calcolo tot biomassa per ogni forest management
-Nbio_EU <- max(cumsum(wbio_EU))
-Nbio_RE <- max(cumsum(wbio_RE))
-Nbio_SE <- max(cumsum(wbio_SE))
-Nbio_SL <- max(cumsum(wbio_SL))
-Nbio_OG <- max(cumsum(wbio_OG))
-#per poi rendere le abbondanze relative
-wbio_EU <- wbio_EU/Nbio_EU
-wbio_RE <- wbio_RE/Nbio_RE
-wbio_SE <- wbio_SE/Nbio_SE
-wbio_SL <- wbio_SL/Nbio_SL
-wbio_OG <- wbio_OG/Nbio_OG
-
-# plot con r su asse x
-plot(r, log(wbio_EU, base = 10), type = "l", col="blue", xlab = "Species' rank", ylab = "Relative total biomass", main = "Whittaker plot - biomass")
-lines(r, log(wbio_RE, base = 10), type = "l", col = "yellow")
-lines(r, log(wbio_SE, base = 10), type = "l", col="red")
-lines(r, log(wbio_SL, base = 10), type = "l", col="green")
-lines(r, log(wbio_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-
-# plot con rank su asse x
-plot(rankbioEU, log(wbio_EU, base = 10), type = "l", col="blue", xlab = "Species' rank", ylab = "Relative total biomass", main = "Whittaker plot - biomass")
-lines(rankbioRE, log(wbio_RE, base = 10), type = "l", col = "yellow")
-lines(rankbioSE, log(wbio_SE, base = 10), type = "l", col="red")
-lines(rankbioSL, log(wbio_SL, base = 10), type = "l", col="green")
-lines(rankbioOG, log(wbio_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-
-w_pbio_dat <- data.frame(wbio_EU, wbio_RE, wbio_SE, wbio_SL, wbio_OG, r, rankbioEU, rankbioRE, rankbioSE, rankbioSL, rankbioOG)
-
-w_p_bior_graph <- ggplot(w_pbio_dat) +
-  geom_line(aes(y=log(wbio_EU, base = 10), x=r, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_RE, base =10), x=r, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_SE, base = 10), x=r, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_SL, base = 10), x=r, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_OG, base = 10), x=r, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species' rank", y = "Relative total biomass") +
-  ggtitle("Whittaker plot (biomass") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus", "AbbRE" = "Reforested", "AbbSE" = "Secondary", "AbbSL"="Selective logging", "AbbOG"="Old grown"))
-
-w_p_bior_graph
-
-w_p_biorank_graph <- ggplot(w_pbio_dat) +
-  geom_line(aes(y=log(wbio_EU, base = 10), x=rankbioEU, color = "AbbEU"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_RE, base =10), x=rankbioRE, color = "AbbRE"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_SE, base = 10), x=rankbioSE, color = "AbbSE"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_SL, base = 10), x=rankbioSL, color = "AbbSL"), linetype = "solid")+
-  geom_line(aes(y=log(wbio_OG, base = 10), x=rankbioOG, color = "AbbOG"), linetype = "solid")+
-  labs(x = "Species' rank", y = "Relative total biomass") +
-  ggtitle("Whittaker plot (biomass") +
-  scale_color_manual(values = c("AbbEU" = "blue", "AbbRE" = "yellow", "AbbSE" = "red", "AbbSL"="green", "AbbOG"="darkorchid2"),
-                     labels = c("AbbEU" = "Eucalyptus", "AbbRE" = "Reforested", "AbbSE" = "Secondary", "AbbSL"="Selective logging", "AbbOG"="Old grown"))
-
-w_p_biorank_graph
-
-grid.arrange(w_p_bior_graph, w_p_biorank_graph, nrow=1)
-
-
-png("plot/altro_wpbioplot_graph.png", res=300, width = 6000, height= 3000)
-par(mfrow=c(1, 2))
-plot(r, log(wbio_EU, base = 10), type = "l", col="blue", xlab = "Species' rank", ylab = "Relative total biomass", main = "Whittaker plot - biomass")
-lines(r, log(wbio_RE, base = 10), type = "l", col = "yellow")
-lines(r, log(wbio_SE, base = 10), type = "l", col="red")
-lines(r, log(wbio_SL, base = 10), type = "l", col="green")
-lines(r, log(wbio_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-plot(rankbioEU, log(wbio_EU, base = 10), type = "l", col="blue", xlab = "Species' rank", ylab = "Relative total biomass", main = "Whittaker plot - biomass")
-lines(rankbioRE, log(wbio_RE, base = 10), type = "l", col = "yellow")
-lines(rankbioSE, log(wbio_SE, base = 10), type = "l", col="red")
-lines(rankbioSL, log(wbio_SL, base = 10), type = "l", col="green")
-lines(rankbioOG, log(wbio_OG, base = 10), type = "l", col="darkorchid")
-legend("topright", legend = c("EU", "RE", "SE", "SL", "OG"), col = c("blue", "yellow", "red", "green", "darkorchid"), lty = 1, cex = 1.5)
-dev.off()
-
-png("plot/altro_wpbioggplot_graph.png", res=300, width = 6000, height= 3000)
-grid.arrange(w_p_bior_graph, w_p_biorank_graph, nrow=1)
-dev.off()
-
-
-
-####################### provo a fare curve abc con rank
-par(mfrow = c(2,3))
-plot(log(rankEU), abbEU, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Eucalyptus")
-lines(log(rankbioEU), bioEU, type = "l", col = "blue")
-plot(log(rankRE), abbRE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Reforested")
-lines(log(rankbioRE), bioRE, type = "l", col = "blue")
-plot(log(rankSE), abbSE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Secondary")
-lines(log(rankbioSE), bioSE, type = "l", col = "blue")
-plot(log(rankSL), abbSL, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Selective Logging")
-lines(log(rankbioSL), bioSL, type = "l", col = "blue")
-plot(log(rankOG), abbOG, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Old Grown")
-lines(log(rankbioOG), bioOG, type = "l", col = "blue")
-
-png("plot/altro_abcrank_graph.png", res=300, width = 6000, height= 3000)
-par(mfrow = c(2,3))
-plot(log(rankEU), abbEU, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Eucalyptus")
-lines(log(rankbioEU), bioEU, type = "l", col = "blue")
-plot(log(rankRE), abbRE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Reforested")
-lines(log(rankbioRE), bioRE, type = "l", col = "blue")
-plot(log(rankSE), abbSE, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Secondary")
-lines(log(rankbioSE), bioSE, type = "l", col = "blue")
-plot(log(rankSL), abbSL, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Selective Logging")
-lines(log(rankbioSL), bioSL, type = "l", col = "blue")
-plot(log(rankOG), abbOG, type = "l", col = "red", xlab = "Species rank (log)", ylab = "Biomass/Abundance", main = "Old Grown")
-lines(log(rankbioOG), bioOG, type = "l", col = "blue")
+##############? correlating mammal and tree richness and tree biomass
+MS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richness))+
+  geom_point(aes(x= biomass, y=richness, color=FM), size=3) + 
+  ggtitle("Mammal Species Richness vs Total Plot Biomass")+
+  annotate("text",x=2500, y= 8,
+           label= "rs = -0.13
+p = 0.635", size=6)+
+  labs(y="Mammal S", x="TB")
+MS_TB_sca <- MS_TB_sca + theme(text = element_text(size = 20))
+cor.test(env$biomass, env$richness, method = "spearman", exact=F)
+
+TS_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=richnesstree))+
+  geom_point(aes(x= biomass, y=richnesstree, color=FM), size=3) + 
+  ggtitle("Tree Species Richness vs Total Plot Biomass")+
+  annotate("text",x=2500, y= 40,
+           label= "rs = 0.27
+   p = 0.9255", size=6)+
+  labs(y="Tree S", x="TB")
+TS_TB_sca <- TS_TB_sca + theme(text = element_text(size = 20))
+cor.test(env$biomass, env$richnesstree, method = "spearman", exact=F)
+
+
+
+##       cor 
+## -0.1336181 
+
+#MSchao_TB_sca <- ggplot(env, mapping = aes(x= biomass, y=chao2richness))+
+#  geom_point(aes(x= biomass, y=chao2richness, color=FM), size=3) + 
+#  ggtitle("R = -0.6, p-value = 0.01779")+
+#  labs(y="Mammal species richness (Chao2)", x="Total plot biomass")
+#MSchao_TB_sca <- MSchao_TB_sca + geom_smooth(method = "lm")+ theme(text = element_text(size = 20))
+#cor.test(env$biomass, env$chao2richness, method = "spearman", exact = F)
+#    cor 
+# -0.6010743
+#grid.arrange(MS_TB_sca, MSchao_TB_sca, ncol=2)
+
+png("11_MS-TB.png", res=300, width = 6000, height= 3000)
+grid.arrange(TS_TB_sca, MS_TB_sca, ncol=2)
 dev.off()
