@@ -1,5 +1,5 @@
 The Brazilian Atlantic Forest is among the most disturbed biomes on Earth and qualifies as a biodiversity hotspot due to its incredible biodiversity and the threats it faces. 
-In recent decades, conservation awareness considerably increased, pushing several institutions to recognize both its value and the damage incurred. 
+In recent decades, conservation awareness considerably increased, pushing several institutions to recognize both its value and the damage incurred. 
 Consequently, protected areas have been established, and various restoration projects initiated. 
 Iracambi Research and Conservation center is a Brazilian NGO committed to Atlantic Forest conservation since 1990. Over the years, Iracambi has employed diverse techniques 
 to restore the Atlantic Forest. Initially, eucalyptus trees were planted and exploited for paper and charcoal production, still existing within the landscape. 
